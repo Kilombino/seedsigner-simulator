@@ -205,22 +205,29 @@ smartcard)
 # because pysatochip imports it at module scope and would fail to import
 # without it.
 #
-# Two entries are not in upstream's requirements.txt at all but are imported by
-# the wallet, so they are pinned here and flagged in THIRD-PARTY.md:
+# Two entries are not in upstream's requirements.txt at all, so they are pinned
+# here and flagged in THIRD-PARTY.md:
 #
 #   base58     not imported directly; bip38.py uses embit's own base58
 #              submodule. Shipped because upstream's environment provides it
-#   mnemonic   imported by seedsigner/views/seed_views.py and smartcard_views.py
+#   mnemonic   imported by seed_views.py and smartcard_views.py up to B11. B13
+#              makes those mnemonics with embit instead, and nothing in the zip
+#              imports it now. It stays because the OS image still installs it
+#              (BR2_PACKAGE_PYTHON_MNEMONIC in the pi0-smartcard defconfig, at
+#              0.20 where this row is 0.21) and test/make_qr_y4m.py reads its
+#              wordlist out of this zip
 #
 # ecdsa needs six, which upstream pins but the earlier hand-assembled tree was
 # missing; it is pinned here at upstream's version.
 #
-# pysatochip is the one row whose pin is deliberately NOT the one in upstream's
-# requirements.txt, because the device does not use that file. requirements.txt
-# asks PyPI for pysatochip==0.17.0; the SeedSigner OS image builds
-# 3rdIteration/pysatochip from GitHub at the tag 0.6a through buildroot, and
-# then deletes requirements.txt from the rootfs. Both are in seedsigner-os at
-# the tag whose name matches this firmware's, SeSi-0.8.7+ShSi-B11:
+# pysatochip is pinned to what the device builds, which up to B11 was NOT what
+# upstream's requirements.txt asked for: that file asked PyPI for
+# pysatochip==0.17.0, while the SeedSigner OS image builds
+# 3rdIteration/pysatochip from GitHub at the tag 0.6a through buildroot and then
+# deletes requirements.txt from the rootfs. At B13 the two agree: requirements.txt
+# pins the same commit, d77e311e, and says it must match the OS package. The OS
+# side is in seedsigner-os at the tag whose name matches this firmware's,
+# SeSi-0.8.7+ShSi-B13:
 #
 #   opt/external-packages/python-pysatochip/python-pysatochip.mk
 #       PYTHON_PYSATOCHIP_VERSION = 0.6a
@@ -230,7 +237,7 @@ smartcard)
 #   opt/build.sh
 #       rm -rf ${rootfs_overlay}/opt/requirements.txt
 #
-# The two are not the same code. That GitHub tag calls itself pysatochip 0.17.4
+# The two were not the same code. That GitHub tag calls itself pysatochip 0.17.4
 # in its own version.py, four revisions past the newest release on PyPI, and one
 # of those revisions is "correct handling of Password, Descriptor and Data
 # secret types in seedkeeper export": its SEEDKEEPER_DIC_TYPE has
@@ -239,6 +246,9 @@ smartcard)
 # the device, which is precisely the kind of lie a simulator must not tell. So
 # the row below is the tag, pinned by commit like every other git row here.
 # Stock has no card code and no pysatochip, so none of this touches its build.
+#
+# pygp is the row B13 moved: requirements.txt and the OS package both went from
+# the tag 0.2a to 0.3a, which is commit e316f6b4.
 
 read -r -d '' DEPENDENCIES <<'DEPS' || true
 pypi|base58|base58|2.1.1|https://files.pythonhosted.org/packages/4a/45/ec96b29162a402fc4c1c5512d114d7b3787b9d1c2ec241d9568b4816ee23/base58-2.1.1-py3-none-any.whl|11a36f4d3ce51dfc1043f3218591ac4eb1ceb172919cebe05b52a5bcc8d245c2|.
@@ -255,7 +265,7 @@ pypi|shamir_mnemonic|shamir-mnemonic|0.3.0|https://files.pythonhosted.org/packag
 pypi|six.py|six|1.17.0|https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl|4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274|.
 pypi|typing_extensions.py|typing_extensions|4.14.1|https://files.pythonhosted.org/packages/b5/00/d631e67a838026495268c2f6884f3711a15a9a2a96cd244fdaea53b823fb/typing_extensions-4.14.1-py3-none-any.whl|d1e1e3b58374dc93031d6eda2420a48ea44a36c2b4766a4fdeb3710755731d76|.
 git|pgpy|PGPy-3rdIteration-fork|7cdad000a76ced53c873211241d5ba20019a8488|https://github.com/3rdIteration/PGPy.git|7cdad000a76ced53c873211241d5ba20019a8488|.
-git|pygp|PyGP-3rdIteration-fork|15682ec8fd042b5d0ae3422e9434e9734db6e55b|https://github.com/3rdIteration/pygp.git|15682ec8fd042b5d0ae3422e9434e9734db6e55b|.
+git|pygp|PyGP-3rdIteration-fork|e316f6b427b7d1020cf24d082f28bd7be7d3874c|https://github.com/3rdIteration/pygp.git|e316f6b427b7d1020cf24d082f28bd7be7d3874c|.
 git|pysatochip|pysatochip-3rdIteration|d77e311e0cd39193c9b2c03a1ab5f69421b8f4d5|https://github.com/3rdIteration/pysatochip.git|d77e311e0cd39193c9b2c03a1ab5f69421b8f4d5|.
 git|specter_card|specter-card|06dcde629cdc1057934b434afc46d822c2d2425d|https://github.com/3rdIteration/specter-javacard.git|06dcde629cdc1057934b434afc46d822c2d2425d|py
 git|urtypes|urtypes|7fb280eab3b3563dfc57d2733b0bf5cbc0a96a6a|https://github.com/selfcustody/urtypes.git|7fb280eab3b3563dfc57d2733b0bf5cbc0a96a6a|src

@@ -45,11 +45,11 @@ wallet_zip_contents_sha256 = dbea45131cc89e391b8ced909975b7d0030771d1d284142dd82
 # code.
 [smartcard]
 repo   = https://github.com/3rdIteration/seedsigner.git
-commit = 662d9dba2327eb77d6924ae9bd62d4902bf24634
-tag    = SeSi-0.8.7+ShSi-B11
+commit = efdd1cfd14e80a076a7e1ae91e9f2270ecbcd44f
+tag    = SeSi-0.8.7+ShSi-B13
 
-wallet_zip_sha256          = 8f08a300043bbc6ce79b70b5676ec3cf069cccb6772e271522abbb63de437dca
-wallet_zip_contents_sha256 = 231a83cc8757098816386f5146bd6f20caccd7ff09aa2f286bf14547c5e65b93
+wallet_zip_sha256          = 29ec9444a7ae8cf15f6d42fc7ae3a8843560651ddae9cc5f02ab424ad813c53e
+wallet_zip_contents_sha256 = 1dd5dcadc7f64e8a2b5e4497822642f3d4c0452c33b126914175d5b248db4bfd
 
 # Our own fork of the fork above, adding BIP-352 silent payments: the receive
 # flow behind a setting that is off by default, and BIP-375/376 send and spend
