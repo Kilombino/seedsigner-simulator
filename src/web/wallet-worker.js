@@ -446,6 +446,36 @@ subprocess.call = _failed_call
 for _name in ("run", "check_call", "check_output", "Popen"):
     setattr(subprocess, _name, _no_such_binary)
 
+# --- and no TCP/IP, which is what the device has -----------------------------
+# From ShSi-B13 the fork checks the system it is running on before the home
+# screen, and stops on an "Unhardened Build" warning if any exposure is open
+# (seedsigner/helpers/hardening.py). Here exactly one of those checks fails:
+# Emscripten lets Python create an AF_INET socket, so the fork reports "Open:
+# network" and waits for a press before Home. On the device that check passes.
+# The pi0-smartcard kernel config at the seedsigner-os tag of the same name
+# leaves CONFIG_INET unset, and the kernel in the published B13 pi0-smartcard
+# image matches it: none of the IPv4 sysctls, tcp_rmem or ip_forward, are in it.
+#
+# So the two address families the device does not have are refused here too,
+# with the error a kernel built without them gives, and the wallet goes straight
+# to Home as it does there. The boot check is the only code on the wallet's
+# screens that reaches for a socket.
+#
+# Smartcard only, because that is the image this was checked against. DoomSigner
+# runs the same check and still stops on the warning, as it did before.
+if ${firmware === "smartcard" ? "True" : "False"}:
+    import errno as _errno
+    import socket as _socket
+
+    class _NoInetSocket(_socket.socket):
+        def __init__(self, family=-1, type=-1, proto=-1, fileno=None):
+            # -1 is socket()'s own default, which means AF_INET.
+            if fileno is None and family in (-1, _socket.AF_INET, _socket.AF_INET6):
+                raise OSError(_errno.EAFNOSUPPORT, "Address family not supported by protocol")
+            super().__init__(family, type, proto, fileno)
+
+    _socket.socket = _NoInetSocket
+
 # --- draw to the page instead of a panel -------------------------------------
 import browser_display
 

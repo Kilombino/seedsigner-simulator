@@ -609,6 +609,14 @@ Raspberry Pi. These are small, but each one is a hard failure without it:
   Emscripten raises `OSError` where those fallbacks catch `FileNotFoundError`, so
   `subprocess` is patched to report the binary as absent, which is both true here
   and the case they already handle.
+- **No TCP/IP, under the smartcard fork.** From `SeSi-0.8.7+ShSi-B13` the fork
+  checks the system it runs on before the home screen and stops on an "Unhardened
+  Build" warning if anything is exposed. Under Pyodide exactly one of its checks
+  fails: Emscripten lets Python create an `AF_INET` socket. The pi0-smartcard
+  device cannot, because its kernel is built without TCP/IP, so there it goes
+  straight to Home. The boot shim therefore refuses `AF_INET` and `AF_INET6`
+  sockets under that firmware, with the error such a kernel gives. DoomSigner runs
+  the same check and still stops on the warning.
 - **No OpenCV, no numpy.** `decode_qr` imports numpy inside a `try` that starts
   with `import cv2`, and opencv is not loaded, so `np` is `None` either way. The
   browser decode is what makes that harmless.
