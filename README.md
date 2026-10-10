@@ -104,8 +104,9 @@ To run your own fork, `SS_REPO` and `SS_COMMIT` override the pin for one build
   the result:
   `gh attestation verify wallet-smartcard.zip --repo bitsagarob/seedsigner-simulator`.
 - **Upstream's own tests run against our pins**
-  ([`upstream-tests.yml`](.github/workflows/upstream-tests.yml)): 949 from the
-  fork's suite, all of stock's. The 50 skipped want a physical card reader.
+  ([`upstream-tests.yml`](.github/workflows/upstream-tests.yml)): about 2,500
+  from the fork's suite, all of stock's. About 200 of the fork's skip themselves,
+  most for want of a jcardsim build, pyscard or SeedSigner OS's own tools.
 - **The webcam really is the camera.** Same `DecodeQR`, same SeedQR /
   CompactSeedQR / PSBT / UR parsing; only the decoder is the browser's.
 - **One host.** No backend, and the CSP names one other origin,
