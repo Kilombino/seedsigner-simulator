@@ -256,8 +256,8 @@ passphrase are public test inputs and nothing derived from them should hold valu
 
 **`test_tutorial_single.py`** (`tutorial_single` in `run.py`): the actual stock
 single-sig walkthrough, offline, from a newly generated image-entropy seed to a
-signed spend and simulated confirmation. Three fresh contexts cover the wallet
-drawer's prechecked passphrase option, an unchecked start with a late tick after
+signed spend and simulated confirmation. Three fresh contexts cover a passphrase
+ticked on the walkthrough's panel before Play, an unchecked start with a late tick after
 the original spend is prepared, and an early runtime tick before seed creation
 finishes. The single tutorial must default to stock without an explicit firmware
 parameter; the registry must restrict single to stock and multisig to smartcard
