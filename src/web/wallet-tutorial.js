@@ -58,8 +58,7 @@
   // nothing here is bidding for space; this is simply above the relay minimum.
   var FEE = 1000n;
 
-  var NOT_REAL = "These are not real bitcoin. They exist only on our test "
-               + "network, cannot be sold or sent to anyone, and are worth nothing.";
+  var NOT_REAL = "Test coins. Worth nothing.";
 
   // How fast self driving goes.
   //
@@ -103,8 +102,11 @@
     // it is the one firmware that can sign a MuSig2 spend. Reachable by URL as
     // ?tutorial=musig as well. The suite pins what each firmware offers, so a
     // choice appearing or disappearing here fails a test rather than shipping.
+    // sub is the line under the title on the drawer's button: what the wallet
+    // needs to spend, in the words the multisig article uses.
     musig: {
       title: "MuSig2",
+      sub: "2 of 3, one signature",
       firmwares: ["doomsigner"],
       phases: ["Seeds onto cards", "Keys off the cards", "Build the wallet",
                "Get test coins", "Exchange nonces and sign", "Send it"],
@@ -112,21 +114,28 @@
     },
     single: {
       title: "Single sig",
+      sub: "1 private key",
       firmwares: ["stock", "smartcard", "doomsigner"],
-      phases: ["Make a seed", "Back up the seed", "Export the key", "Build the wallet",
+      phases: ["Make a private key", "Back it up", "Public key to wallet", "Build the wallet",
                "Get test coins", "Sign it", "Send it"],
       build: function (tutorial) { return createSteps(tutorial, singleSteps); },
     },
     multi: {
       title: "Multisig",
+      sub: "2 of 3 private keys",
       firmwares: ["smartcard", "doomsigner", "stock"],
-      phases: ["Seeds onto cards", "Keys off the cards", "Build the wallet",
-               "Get test coins", "Sign it twice", "Send it"],
+      phases: ["Make 3 private keys", "Public keys to wallet", "Build the wallet",
+               "Get test coins", "Sign with 2 of 3", "Send it"],
       build: function (tutorial) { return createSteps(tutorial, multiSteps); },
     },
   };
 
   var CANCELLED = new Error("Tutorial action cancelled");
+
+  // Amounts the way the device shows small ones: whole sats, grouped.
+  function sats(value) {
+    return Number(value).toLocaleString("en-US") + " sats";
+  }
 
   // Drawn in the page's own idiom: strokes that inherit the button's colour.
   var ICONS = {
@@ -287,19 +296,27 @@
     ".tut-fold dd{margin:0;overflow-wrap:anywhere;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}",
     ".tut-fold dd.plain{font-family:inherit}",
 
-    // A link, not a button. It was an orange box the same size and colour as the
-    // one that opens the wallet, sitting an inch above it, and two of those say
-    // "two equal ways in" when only one of them is what the page is for. This is
-    // a guided demo of one ceremony, offered to somebody handed a link to it, so
-    // it takes the shape everything else optional on the web takes. Centred as a
-    // block of its own width, because the slot it goes in is the full width of
-    // the column and text-align on the slot would follow the tutorial panel in
-    // here later.
-    ".tut-start{display:block;margin:.2rem auto;width:fit-content;font:inherit;",
-    "font-size:.9rem;color:#f7931a;background:none;border:0;padding:.2rem;",
-    "cursor:pointer;text-decoration:underline;text-underline-offset:3px}",
-    ".tut-start:hover{color:#ffa32e}",
-    ".tut-start:focus-visible{outline:2px solid #f7931a;outline-offset:2px;border-radius:4px}",
+    // Inside the open wallet drawer. These were underlined links when they sat
+    // on the resting page beside the button that opens the wallet. In the
+    // drawer they are what somebody new came for, so they lead it: one card per
+    // walkthrough, a play mark, the name, and one line on what it needs.
+    // #start-tutorial in front of each, because the drawer's own .wal button
+    // rule is more specific than a bare class and would win.
+    "#start-tutorial{margin:1rem 0 0}",
+    "#start-tutorial .tut-offer{margin:0 0 .5rem;font-size:.76rem;letter-spacing:.06em;",
+    "text-transform:uppercase;color:#7c848f}",
+    "#start-tutorial .tut-start{display:flex;align-items:center;gap:.85rem;width:100%;",
+    "box-sizing:border-box;margin:0 0 .5rem;padding:.7rem .9rem;text-align:left;",
+    "font:inherit;color:#d7dbe0;background:#16181c;border:1px solid #2a2f36;",
+    "border-radius:8px;cursor:pointer}",
+    "#start-tutorial .tut-start:hover{border-color:#f7931a}",
+    "#start-tutorial .tut-start:focus-visible{outline:2px solid #f7931a;outline-offset:2px}",
+    "#start-tutorial .tut-start svg{flex:none;width:1rem;height:1rem;padding:.6rem;",
+    "border-radius:50%;background:#f7931a;fill:#12151a;stroke:#12151a;",
+    "stroke-width:1.5;stroke-linejoin:round}",
+    "#start-tutorial .tut-start b{display:block;font-size:1rem;font-weight:600}",
+    "#start-tutorial .tut-start small{display:block;margin:.15rem 0 0;font-size:.82rem;",
+    "color:#8b939e}",
 
     // A page over the page, not a panel tucked under a corner of it, once there
     // is no room for a panel. It was a floating box at z-index 12, which is a
@@ -379,9 +396,9 @@
     this.qrSeeds = this.id === "multi" && this.firmware === "stock";
     this.phases = this.entry.phases.slice();
     if (this.qrSeeds) {
-      this.phases.splice(0, 2, "Scan three seeds", "Export the keys");
+      this.phases.splice(0, 2, "Load 3 private keys", "Public keys to wallet");
     } else if (this.id === "single" && this.firmware !== "stock") {
-      this.phases.splice(0, 2, "Seed onto card", "Read the card");
+      this.phases.splice(0, 2, "Private key onto card", "Load it from the card");
     }
     this.sendKey = options.sendKey;
     this.keymap = options.keymap;
@@ -441,23 +458,20 @@
     // dialog nobody was expecting is the wrong way round.
     this.chooser = element("div", "tut-chooser");
     this.chooser.hidden = true;
-    this.chooser.appendChild(element("p", null,
-      "Each seed is made from a photograph, the way the device does it. What "
-      + "should it photograph?"));
+    this.chooser.appendChild(element("p", null, this.id === "single"
+      ? "Make the private key from a photo of:"
+      : "Make the private keys from a photo of:"));
     var choices = element("div", "tut-choices");
     // Neither is the suggested answer: one is your camera and one is not, and
     // the page has no business preferring the one that turns your camera on.
     this.cameraChoice = element("button", "wide", "My camera");
     this.cameraChoice.type = "button";
-    this.noiseChoice = element("button", "wide", "Random noise instead");
+    this.noiseChoice = element("button", "wide", "Random noise");
     this.noiseChoice.type = "button";
     choices.appendChild(this.cameraChoice);
     choices.appendChild(this.noiseChoice);
     this.chooser.appendChild(choices);
-    this.chooser.appendChild(element("p", "tut-choice-note",
-      "Your browser will ask for the camera. Nothing is recorded or sent: the "
-      + "picture is taken by the device on this page and thrown away once the "
-      + "seed is made."));
+    this.chooser.appendChild(element("p", "tut-choice-note", "Nothing is saved or sent."));
     var self1 = this;
     this.cameraChoice.addEventListener("click", function () { self1.choose(true); });
     this.noiseChoice.addEventListener("click", function () { self1.choose(false); });
@@ -915,11 +929,11 @@
     var state = this.state || {};
     if (this.id === "single") state = state.activeRound || {};
     var keys = (state.keys || []).filter(Boolean).length;
-    var rows = [["Keys", this.id === "single" ? (state.account ? "1 of 1" : "0 of 1") : keys + " of 3"]];
-    if (state.receive) rows.push(["Receiving at", ends(state.receive.address)]);
-    if (state.funding) rows.push(["Funded by", ends(state.funding)]);
-    if (state.spend && state.spend.txid) rows.push(["Spent", ends(state.spend.txid)]);
-    else if (state.wallet) rows.push(["Quorum", this.id === "single" ? "1 of 1" : "2 of 3"]);
+    var rows = [["Public keys", this.id === "single" ? (state.account ? "1 of 1" : "0 of 1") : keys + " of 3"]];
+    if (state.receive) rows.push(["Address", ends(state.receive.address)]);
+    if (state.funding) rows.push(["Coins in", ends(state.funding)]);
+    if (state.spend && state.spend.txid) rows.push(["Sent", ends(state.spend.txid)]);
+    else if (state.wallet) rows.push(["Policy", this.id === "single" ? "1 of 1" : "2 of 3"]);
 
     this.face.textContent = "";
     this.face.appendChild(element("b", null, "Demo wallet"));
@@ -1461,8 +1475,8 @@
     this.endTransfer();
     this.verdict.dataset.state = "bad";
     this.verdict.textContent = error.message;
-    this.doText.textContent = "This step did not get where it was going. Try it "
-      + "again, or take the buttons yourself.";
+    this.doText.textContent = "This step got stuck. Try again, or press the "
+      + "buttons yourself.";
     if (!this.retryButton) {
       this.retryButton = this.control("Try again", function () {
         var step = self.at, action = self.atAction;
@@ -1509,6 +1523,11 @@
     var t = tutorial;
     var PHASES = t.phases;
 
+    // "Card A" starts a sentence; inside one it is "card A".
+    function lowerFirst(name) {
+      return name.charAt(0).toLowerCase() + name.slice(1);
+    }
+
     function keys(names, gap) {
       return function () { return t.press(names, gap); };
     }
@@ -1551,8 +1570,7 @@
      */
     function homeAgain() {
       return act(
-        "Press left and then select, as many times as it takes, until the "
-        + "device is back on its home screen.",
+        "Back to the home screen",
         function () {
           var tries = 0;
           function climb() {
@@ -1582,8 +1600,7 @@
      */
     function advance(target, tries, instruct) {
       return act(
-        instruct || ("Keep pressing the select button until the device reaches "
-                     + target + "."),
+        instruct || "Press select until it moves on",
         function () {
           var attempts = 0;
           var previous = null;
@@ -1625,7 +1642,7 @@
 
     function forgetTheSeed(card) {
       return [
-        act("Make the device forget the seed",
+        act("Now the device forgets it",
             keys(["ArrowRight", "Enter"]), screenIs("ButtonListScreen")),
         act("The loaded seed", keys(["Enter"]), screenIs("SeedOptionsScreen")),
         act("Discard",
@@ -1633,7 +1650,7 @@
             screenIs("WarningScreen")),
         act("Confirm",
             keys(["ArrowDown", "Enter"]), screenIs("MainMenuScreen")),
-        act(card + " out of the reader",
+        act("Remove " + lowerFirst(card),
             function () { t.tray.eject(); }, inserted(-1)),
       ];
     }
@@ -1736,10 +1753,10 @@
       var card = "Card " + seed.card;
       var cachedPin = t.firmware === "doomsigner" && i > 0;
       return step(
-        "Put a test seed on " + card,
+        "Private key " + seed.card,
         PHASES[0],
         [
-          act(card + " into the reader",
+          act("Insert " + lowerFirst(card),
               function () { t.tray.insert(i); }, inserted(i)),
           // Made on the device, not handed to it. A seed arriving as a QR is a
           // seed that existed somewhere else first, which is the one thing a
@@ -1755,14 +1772,14 @@
           // perform is skipped when the visitor is driving, and a hands on run
           // would otherwise photograph an empty panel and be told its entropy
           // was poor. The same reason the QR codes are painted in their waits.
-          act("A new seed, from a photograph", keys(["Enter"]), function () {
+          act("New seed, from a photo", keys(["Enter"]), function () {
             return t.until("display\\(\\) enter: ToolsImageEntropyLivePreviewScreen\\b",
                            120000).then(function (value) {
               t.showEntropy();
               return t.beat(900).then(function () { return value; });
             });
           }),
-          act("Take the picture", t.firmware === "doomsigner"
+          act("Take the photo", t.firmware === "doomsigner"
               ? advance("ToolsImageEntropyFinalImageScreen", 6).perform : keys(["Enter"]), function () {
             return t.until("display\\(\\) enter: ToolsImageEntropyFinalImageScreen\\b",
                            120000).then(function (value) {
@@ -1771,17 +1788,17 @@
               return value;
             });
           }),
-          act("Accept it", keys(["ArrowRight"]), screenIs("ButtonListScreen")),
-          act("Twelve words", keys(["Enter"]), screenIs("DireWarningScreen", 120000)),
-          act("The device says to keep them private",
+          act("Accept", keys(["ArrowRight"]), screenIs("ButtonListScreen")),
+          act("12 words", keys(["Enter"]), screenIs("DireWarningScreen", 120000)),
+          act("Keep them private",
               keys(["Enter"]), screenIs("SeedWordsScreen")),
-          act("The twelve words it made",
+          act("The backup: 12 words",
               keys(["Enter", "Enter", "Enter"]),
               screenIs("SeedWordsBackupTestPromptScreen")),
           // Skip, not Verify: the check types all twelve words back in, which is
           // the right thing to do with a seed you are keeping and forty presses
           // of a demo whose seed is thrown away at the end of the step.
-          act("Skip the backup check",
+          act("Skip the check (demo only)",
               keys(["ArrowDown", "ArrowDown", "Enter"]), screenIs("SeedFinalizeScreen")),
           act("Done", keys(["Enter"]), screenIs("SeedOptionsScreen")),
           act("Backup seed",
@@ -1790,29 +1807,29 @@
           act("To SeedKeeper",
               keys(["ArrowDown", "Enter"]),
               screenIs(cachedPin ? "WarningScreen" : "SeedAddPassphraseScreen")),
-          act(cachedPin ? "The device remembers the card PIN" : "The card asks for a PIN",
+          act(cachedPin ? "PIN remembered" : "Card PIN",
               cachedPin ? null : pin(),
               cachedPin ? settle(0) : screenIs("WarningScreen")),
-          act("It has none yet",
+          act("New card: no PIN yet",
               keys(["Enter"]), screenIs("SeedAddPassphraseScreen")),
-          act("Choose one",
+          act("Choose a PIN",
               pin(), screenIs("SeedAddPassphraseScreen")),
           act("Again, to confirm",
               pin(), screenIs("LargeIconStatusScreen")),
-          act("The card is set up",
+          act("Card ready",
               keys(["Enter"]), screenIs("SeedAddPassphraseScreen")),
-          act("Accept the label it offers",
+          act("Accept the label",
               keys(["3"]),
               logged("\\[card\\] Card " + seed.card + " stored secret", 240000)),
           act(null, null, screenIs("LargeIconStatusScreen")),
-          act("The seed is on the card",
+          act("Saved on " + lowerFirst(card),
               keys(["Enter"]), screenIs("SeedOptionsScreen")),
           act("Now the device forgets it",
               discardKeys(),
               screenIs("WarningScreen")),
           act("Confirm",
               keys(["ArrowDown", "Enter"]), screenIs("MainMenuScreen")),
-          act(card + " out of the reader",
+          act("Remove " + lowerFirst(card),
               function () { t.tray.eject(); }, inserted(-1)),
         ],
         // Even a blank card cannot replay image capture from an arbitrary device screen.
@@ -1824,7 +1841,7 @@
     function seedOffCard(i, cachedPin) {
       var card = "Card " + SEEDS[i].card;
       return [
-        act(card + " into the reader",
+        act("Insert " + lowerFirst(card),
             function () { t.tray.insert(i); }, inserted(i)),
         act("Seeds",
             keys(["ArrowRight", "Enter"]), screenIs("ButtonListScreen")),
@@ -1832,14 +1849,14 @@
             keys(["ArrowDown", "ArrowDown", "ArrowDown", "Enter"]),
             cachedPin ? logged("display\\(\\) enter: (SeedAddPassphraseScreen|ButtonListScreen)\\b")
               : screenIs("SeedAddPassphraseScreen")),
-        act("The card's PIN", cachedPin ? function () {
+        act("Card PIN", cachedPin ? function () {
           if (t.currentScreen() === "SeedAddPassphraseScreen") return pin()();
         } : pin(), cachedPin ? function () {
           return t.poll(240000, function () {
             return t.currentScreen() === "ButtonListScreen";
           }, "the card's secret list");
         } : screenIs("ButtonListScreen", 240000)),
-        act("The one secret on the card", keys(["Enter"]),
+        act("Pick private key " + SEEDS[i].card, keys(["Enter"]),
             logged("\\[card\\] " + card + " exporting secret", 240000)),
         act(null, null, screenIs("SeedFinalizeScreen", 240000)),
       ];
@@ -1847,11 +1864,11 @@
 
     function scanSeed(i) {
       var seed = SEEDS[i];
-      return step("Scan test seed " + seed.card, PHASES[0], [
+      return step("Load private key " + seed.card, PHASES[0], [
         i === 0 ? act(null, null, screenIs("MainMenuScreen")) : homeAgain(),
-        act("Open Scan", keys(["Enter"]), screenIs("ScanScreen")),
-        handUp("Public test SeedQR " + seed.card, seed.seedqr, screenIs("SeedFinalizeScreen")),
-        act("Done, keep this seed in memory", keys(["Enter"]), screenIs("SeedOptionsScreen")),
+        act("Scan", keys(["Enter"]), screenIs("ScanScreen")),
+        handUp("Test backup " + seed.card, seed.seedqr, screenIs("SeedFinalizeScreen")),
+        act("Done", keys(["Enter"]), screenIs("SeedOptionsScreen")),
         homeAgain(),
       ], false);
     }
@@ -1860,7 +1877,7 @@
       return [
         homeAgain(),
         act("Seeds", keys(["ArrowRight", "Enter"]), screenIs("ButtonListScreen")),
-        act("Select seed " + SEEDS[i].card,
+        act("Pick private key " + SEEDS[i].card,
             keys(Array(i).fill("ArrowDown").concat(["Enter"])), screenIs("SeedOptionsScreen")),
       ];
     }
@@ -1869,7 +1886,7 @@
       var seed = SEEDS[i];
       var card = (t.qrSeeds ? "Seed " : "Card ") + seed.card;
       return step(
-        "Read " + card + "'s public key",
+        "Public key " + seed.card,
         PHASES[1],
         (t.qrSeeds ? selectSeed(i) : seedOffCard(i).concat([
           act("Done", keys(["Enter"]), screenIs("SeedOptionsScreen")),
@@ -1880,20 +1897,20 @@
               keys(["ArrowDown", "Enter"]), screenIs("ButtonListScreen")),
           act("Native Segwit",
               keys(["Enter"]), screenIs("ButtonListScreen")),
-          act("Static, so it comes as one code",
+          act("Static: one QR code",
               keys(["ArrowDown", "Enter"]), settle(1500)),
           // A privacy warning and a details page may sit between here and the
           // QR, depending on settings, so this is driven by where it has
           // arrived rather than by a fixed number of presses.
-          advance("QRDisplayScreen", 5),
-          readOff(card + "'s account public key",
+          advance("QRDisplayScreen", 5, "Next, until the QR shows"),
+          readOff("Public key " + seed.card,
                   function (context, text) {
                     context.state.keys = context.state.keys || [];
                     context.state.keys[i] = text;
                     t.detail(card + " account key", text);
                     return true;
                   }),
-          act("Any button leaves the QR", t.qrSeeds
+          act("Close the QR", t.qrSeeds
               ? function () { return t.sleep(1600).then(keys(["Enter"])); } : keys(["Enter"]),
               screenIs("MainMenuScreen")),
         ]).concat(t.qrSeeds ? [] : forgetTheSeed(card)));
@@ -1905,25 +1922,25 @@
       var seed = SEEDS[i];
       var card = (t.qrSeeds ? "Seed " : "Card ") + seed.card;
       return step(
-        "Sign with " + card,
+        t.qrSeeds ? "Sign with private key " + seed.card : "Sign with card " + seed.card,
         PHASES[4],
         (t.qrSeeds ? selectSeed(i) : [
-          act(card + " into the reader",
+          act("Insert " + lowerFirst(card),
               function () { t.tray.insert(i); }, inserted(i)),
           act("Seeds",
               keys(["ArrowRight", "Enter"]), screenIs("ButtonListScreen")),
           act("From SeedKeeper",
               keys(["ArrowDown", "ArrowDown", "ArrowDown", "Enter"]),
               screenIs("SeedAddPassphraseScreen")),
-          act("The card's PIN", pin(), screenIs("ButtonListScreen", 240000)),
-          act("The secret on the card", keys(["Enter"]),
+          act("Card PIN", pin(), screenIs("ButtonListScreen", 240000)),
+          act("Pick private key " + seed.card, keys(["Enter"]),
               logged("\\[card\\] Card " + seed.card + " exporting secret", 240000)),
           act(null, null, screenIs("SeedFinalizeScreen", 240000)),
           act("Done", keys(["Enter"]), screenIs("SeedOptionsScreen")),
           homeAgain(),
         ]).concat([
-          act("Open Scan", keys(["Enter"]), screenIs("ScanScreen")),
-          handUpFrames("The transaction to be signed, in several codes",
+          act("Scan", keys(["Enter"]), screenIs("ScanScreen")),
+          handUpFrames("Payment to sign",
                        function (context) { return context.state.frames; },
                        function () {
                          return t.poll(300000, function () {
@@ -1931,10 +1948,9 @@
                            return screen && screen !== "ScanScreen";
                          }, "the device to take the transaction");
                        }),
-          advance("PSBTFinalizeScreen", 10,
-                  "Through the review screens, until it offers to sign"),
-          act("Approve it", keys(["Enter"]), screenIs("QRDisplayScreen", 240000)),
-          readOff(card + "'s signature",
+          advance("PSBTFinalizeScreen", 10, "Check the payment, screen by screen"),
+          act("Sign", keys(["Enter"]), screenIs("QRDisplayScreen", 240000)),
+          readOff("Signature " + seed.card,
                   function (context, collector) {
                     var psbt = C.toBase64(collector.psbt());
                     context.state.signed = context.state.signed || [];
@@ -1942,7 +1958,7 @@
                     t.detail(card + " signed PSBT", psbt);
                     return true;
                   }, 300000),
-          act("Any button leaves the QR", t.qrSeeds
+          act("Close the QR", t.qrSeeds
               ? function () { return t.sleep(1600).then(keys(["Enter"])); } : keys(["Enter"]),
               function () {
                 return t.poll(60000, function () {
@@ -2006,21 +2022,21 @@
           homeAgain(),
           act("Seeds", keys(["ArrowRight", "Enter"]), screenIs("ButtonListScreen")),
           act("The loaded seed", keys(["Enter"]), screenIs("SeedOptionsScreen")),
-          act("Discard the loaded seed", stock ? keys(down(4)) : helpers.discardKeys(), screenIs("WarningScreen")),
-          act("Confirm discard", keys(["ArrowDown", "Enter"]), screenIs("MainMenuScreen")),
+          act("Discard", stock ? keys(down(4)) : helpers.discardKeys(), screenIs("WarningScreen")),
+          act("Confirm", keys(["ArrowDown", "Enter"]), screenIs("MainMenuScreen")),
         ].concat(stock ? [
-          act("Open Scan", keys(["Enter"]), screenIs("ScanScreen")),
-          handUp("Reload the demo's original SeedQR", function () { return state.seedqr; },
+          act("Scan", keys(["Enter"]), screenIs("ScanScreen")),
+          handUp("The backup again", function () { return state.seedqr; },
                  screenIs("SeedFinalizeScreen")),
         ] : helpers.seedOffCard(0, true)) : [];
-        return step(reload ? "Discard, reload, add passphrase" : "Add a passphrase", phase,
+        return step(reload ? "Reload, add passphrase" : "Add a passphrase", phase,
           actions.concat([
-            act("Passphrases are chosen when loading. Select Type Passphrase.",
+            act("Type passphrase",
                 keys(["ArrowDown", "Enter"]), screenIs("SeedAddPassphraseScreen")),
-            act("Type the demo passphrase abc, then save with button 3",
+            act("Type abc, then save",
                 keys(["Enter", "ArrowRight", "Enter", "ArrowRight", "Enter", "3"]),
                 screenIs("SeedReviewPassphraseScreen")),
-            act("Review the changed fingerprint, then Done",
+            act("New fingerprint: a new wallet",
                 keys(stock ? ["ArrowDown", "Enter"] : ["Enter"]), screenIs("SeedOptionsScreen")),
           ]), false);
       }
@@ -2040,13 +2056,13 @@
           act("The loaded seed", keys(["Enter"]), screenIs("SeedOptionsScreen")),
         ];
         return [
-          step("Export the single-sig account key", p[0], exportActions.concat([
+          step("Show the public key", p[0], exportActions.concat([
             act("Export Xpub", keys(["ArrowDown", "Enter"]), screenIs("ButtonListScreen")),
             act("Single sig", keys(["Enter"]), screenIs("ButtonListScreen")),
             act("Native Segwit", keys(["Enter"]), screenIs("ButtonListScreen")),
             act("Animated QR", keys(["Enter"]), settle(1600)),
-            advance("QRDisplayScreen", 5),
-            readOff("The account public key", function (context, value) {
+            advance("QRDisplayScreen", 5, "Next, until the QR shows"),
+            readOff("Public key", function (context, value) {
               return Promise.resolve(C.parseAccount(typeof value === "string" ? value : value.payload()))
                 .then(function (account) {
                   context.check();
@@ -2055,22 +2071,22 @@
                            account.fingerprint);
                 });
             }),
-            act("Leave the account QR", function () {
+            act("Close the QR", function () {
               return t.sleep(1600).then(keys(["Enter"]));
             }, logged("display\\(\\) enter: (LargeIconStatusScreen|MainMenuScreen)\\b")),
-            act("Open Verify Address if offered", function () {
+            act("Address check, if offered", function () {
               if (t.currentScreen() === "LargeIconStatusScreen") return t.press(["Enter"]);
             }, function () {
               if (t.currentScreen() === "MainMenuScreen") return Promise.resolve();
               return screenIs("ScanScreen")();
             }),
-            act("Cancel address verification for this demo if offered", function () {
+            act("Skip it (demo only)", function () {
               if (t.currentScreen() === "ScanScreen") return t.press(["ArrowLeft"]);
             }, function () {
               return t.poll(120000, function () { return t.currentScreen() === "MainMenuScreen"; }, "the home screen");
             }),
           ]), replay(round)),
-          step("Build the single-sig wallet", p[1], [coordinator(function (context) {
+          step("Make the wallet", p[1], [coordinator(function (context) {
             round.wallet = round.wallet || C.singleSigWallet(round.account);
             round.index = round.index === undefined ? 0 : round.index;
             return C.deriveAddressSingle(round.wallet, 0, round.index).then(function (receive) {
@@ -2079,11 +2095,11 @@
               t.detail("descriptor", round.wallet.descriptor);
               t.detail("receive address", receive.address);
               t.verdict.dataset.state = "good";
-              t.verdict.textContent = "The wallet's address is " + receive.address;
+              t.verdict.textContent = "Wallet ready. Address: " + receive.address;
               t.summary();
             });
           })], replay(round)),
-          step("Ask Bitsaga Signet's faucet for coins", p[2], [
+          step("Ask for test coins", p[2], [
             coordinator(function (context) {
               if (round.funding) return;
               // A pending payment must settle before Back can replay coordinator work.
@@ -2107,7 +2123,8 @@
                 t.reflect();
                 t.detail("faucet transaction", paid.txid);
                 t.verdict.dataset.state = "good";
-                t.verdict.textContent = "The faucet sent test coins. " + NOT_REAL;
+                t.verdict.textContent = (paid.amount_sat ? sats(paid.amount_sat) + " on the way. " : "On the way. ")
+                  + NOT_REAL;
               }, function (error) {
                 context.check();
                 t.reflect();
@@ -2115,10 +2132,10 @@
               });
             }),
             coordinator(function () {
-              return waitForBlock(t, round.funding, "the faucet's payment", "Waiting for test coins.");
+              return waitForBlock(t, round.funding, "the faucet's payment", "Waiting for a block.");
             }),
           ], false),
-          step("Build the spend", p[3], [coordinator(function (context) {
+          step("Make a payment", p[3], [coordinator(function (context) {
             if (round.psbt) return;
             return C.network.proof(round.funding).then(function (proof) {
               context.check();
@@ -2141,26 +2158,26 @@
               round.frames = specterFrames(round.psbt);
               t.detail("unsigned PSBT", round.psbt);
               t.verdict.dataset.state = "good";
-              t.verdict.textContent = "Ready to sign: " + round.amount + " sats, with " + FEE + " sat fee.";
+              t.verdict.textContent = "Payment ready: " + sats(round.amount) + ". Fee: " + sats(FEE) + ".";
             });
           })], replay(round)),
-          step("Sign with the loaded seed", p[3], [
+          step("Sign it", p[3], [
             homeAgain(),
             act("Seeds", keys(["ArrowRight", "Enter"]), screenIs("ButtonListScreen")),
             act("The loaded seed", keys(["Enter"]), screenIs("SeedOptionsScreen")),
             act("Scan transaction", keys(["Enter"]), screenIs("ScanScreen")),
-            handUpFrames("The unsigned transaction", function () { return round.frames; }, function () {
+            handUpFrames("Payment to sign", function () { return round.frames; }, function () {
               return t.poll(300000, function () {
                 var screen = t.currentScreen();
                 return screen && screen !== "ScanScreen";
               }, "the device to take the transaction");
             }),
-            advance("PSBTFinalizeScreen", 10, "Review the transaction, until it offers to sign"),
-            act("Approve it", keys(["Enter"]), screenIs("QRDisplayScreen", 240000)),
-            readOff("The signed transaction", function (context, collector) {
+            advance("PSBTFinalizeScreen", 10, "Check the payment, screen by screen"),
+            act("Sign", keys(["Enter"]), screenIs("QRDisplayScreen", 240000)),
+            readOff("Signed payment", function (context, collector) {
               round.signed = C.toBase64(collector.psbt());
             }, 300000),
-            act("Leave the signed QR", function () {
+            act("Close the QR", function () {
               return t.sleep(1600).then(keys(["Enter"]));
             }, screenIs("MainMenuScreen")),
           ], replay(round)),
@@ -2189,7 +2206,7 @@
           step("Done", p[4], [coordinator(function () {
             round.confirmed = true;
             t.verdict.dataset.state = "good";
-            t.verdict.textContent = "Signed, sent and confirmed on Bitsaga Signet: " + round.spend.txid;
+            t.verdict.textContent = "Confirmed: " + round.spend.txid;
             t.showFace("Confirmed", round.spend.txid);
           })], false),
         ];
@@ -2204,8 +2221,8 @@
         scheduled = true;
         var round = { passphrase: true };
         state.rounds.push(round);
-        var extra = ["Load with passphrase", "Export the passphrase key", "Build the passphrase wallet",
-                     "Get passphrase test coins", "Sign with passphrase", "Send with passphrase"];
+        var extra = ["Passphrase: load", "Passphrase: public key", "Passphrase: wallet",
+                     "Passphrase: test coins", "Passphrase: sign", "Passphrase: send"];
         Array.prototype.push.apply(t.phases, extra);
         t.updatePhases();
         t.setPhase(steps[t.at] && steps[t.at].phase);
@@ -2219,26 +2236,26 @@
         }
       };
 
-      var seedStep = stock ? step("Make a seed from a photograph", phases[0], [
+      var seedStep = stock ? step("From a photo", phases[0], [
         act("Tools", keys(["ArrowDown", "Enter"]), screenIs("ButtonListScreen")),
-        act("A new seed, from a photograph", keys(["Enter"]), function () {
+        act("New seed, from a photo", keys(["Enter"]), function () {
           return screenIs("ToolsImageEntropyLivePreviewScreen")().then(function () {
             t.showEntropy();
             return t.beat(900);
           });
         }),
-        act("Take the picture", keys(["Enter"]), function () {
+        act("Take the photo", keys(["Enter"]), function () {
           return screenIs("ToolsImageEntropyFinalImageScreen")().then(function () {
             t.stopEntropy();
             t.endTransfer();
           });
         }),
-        act("Accept it", keys(["ArrowRight"]), screenIs("ButtonListScreen")),
-        act("Twelve words", keys(["Enter"]), screenIs("DireWarningScreen")),
-        act("Keep the words private", keys(["Enter"]), screenIs("SeedWordsScreen")),
-        act("The twelve words", keys(["Enter", "Enter", "Enter"]), screenIs("SeedWordsBackupTestPromptScreen")),
-        act("Skip the backup check", keys(down(stock ? 1 : 2)), screenIs("SeedFinalizeScreen")),
-      ], false) : step("Read the seed back from Card A", phases[1], helpers.seedOffCard(0, true), false);
+        act("Accept", keys(["ArrowRight"]), screenIs("ButtonListScreen")),
+        act("12 words", keys(["Enter"]), screenIs("DireWarningScreen")),
+        act("Keep them private", keys(["Enter"]), screenIs("SeedWordsScreen")),
+        act("The backup: 12 words", keys(["Enter", "Enter", "Enter"]), screenIs("SeedWordsBackupTestPromptScreen")),
+        act("Skip the check (demo only)", keys(down(stock ? 1 : 2)), screenIs("SeedFinalizeScreen")),
+      ], false) : step("Load it from card A", phases[1], helpers.seedOffCard(0, true), false);
       if (!stock) {
         var save = helpers.seedOntoCard(0);
         save.phase = phases[0];
@@ -2255,7 +2272,7 @@
         }
       }));
       steps.push(seedStep);
-      steps.push(step("Finish loading the seed", stock ? phases[0] : phases[1], [
+      steps.push(step("Finish loading", stock ? phases[0] : phases[1], [
         act("Done", function () {
           if (pendingPassphrase || t.passphrase) return;
           finalizing = true;
@@ -2280,18 +2297,18 @@
           }, "Done or a pending passphrase");
         }),
       ], false));
-      if (stock) steps.push(step("Backup for this demo", "Back up the seed", [
+      if (stock) steps.push(step("As a SeedQR", "Back it up", [
         act("Backup seed", keys(down(3)), screenIs("ButtonListScreen")),
         act("Export SeedQR", keys(down(stock ? 1 : 2)), screenIs("SeedTranscribeSeedQRFormatScreen")),
         act("Standard SeedQR", keys(["Enter"]), screenIs("DireWarningScreen")),
-        act("Keep the demo backup private", keys(["Enter"]), screenIs("SeedTranscribeSeedQRWholeQRScreen")),
-        readOff("A temporary backup for this demo only", function (context, text) {
+        act("Keep it private", keys(["Enter"]), screenIs("SeedTranscribeSeedQRWholeQRScreen")),
+        readOff("Backup, for this demo only", function (context, text) {
           if (typeof text !== "string" || !/^\d{48}$/.test(text)) throw new Error("expected a twelve-word Standard SeedQR");
           state.seedqr = text;
         }),
         act("View the backup", keys(["Enter"]), screenIs("SeedTranscribeSeedQRZoomedInScreen")),
         act("Continue", keys(["Enter"]), screenIs("SeedTranscribeSeedQRConfirmQRPromptScreen")),
-        act("Skip the backup scan", keys(["ArrowDown", "Enter"]), screenIs("SeedOptionsScreen")),
+        act("Skip the check (demo only)", keys(["ArrowDown", "Enter"]), screenIs("SeedOptionsScreen")),
       ], false));
       Array.prototype.push.apply(steps, roundSteps(original, t.entry.phases.slice(2)));
       return steps;
@@ -2459,11 +2476,11 @@
     for (var k = 0; k < 3; k++) steps.push(keyOffCard(k));
 
     steps.push(step(
-      "Build the 2 of 3",
+      "Make the 2 of 3 wallet",
       PHASES[2],
       [
         coordinator(function (context) {
-          t.showFace("Building the wallet", "Three keys into one 2 of 3.");
+          t.showFace("Building the wallet", "3 public keys, 2 of 3");
           // A fresh address, the way a wallet hands out a fresh one every time
           // rather than reusing the first. It also keeps two visitors doing this
           // at once out of each other's way: the three test seeds are public and
@@ -2480,24 +2497,23 @@
                      + context.state.index + ")");
             t.detail("witness script", C.hex(receive.witnessScript));
             t.verdict.dataset.state = "good";
-            t.verdict.textContent = "The wallet is built. Its address for this "
-              + "run is " + receive.address;
+            t.verdict.textContent = "Wallet ready. Address: " + receive.address;
             t.showFace("2 of 3 wallet", receive.address);
           });
         }),
       ]));
 
     steps.push(step(
-      "Tell the device about the wallet",
+      "Descriptor to the signer",
       PHASES[2],
       [
-        act("Open Scan", keys(["Enter"]), screenIs("ScanScreen")),
-        handUp("The 2 of 3 descriptor",
+        act("Scan", keys(["Enter"]), screenIs("ScanScreen")),
+        handUp("Descriptor",
                function (context) {
                  return context.state.wallet.descriptor;
                },
                screenIs("MultisigWalletDescriptorScreen", 240000)),
-        act("The wallet, then accept it",
+        act("Accept the wallet",
             keys(["Enter"]),
             function () {
               return t.poll(120000, function () {
@@ -2509,34 +2525,33 @@
       ]));
 
     steps.push(step(
-      "Ask Bitsaga Signet's faucet for coins",
+      "Ask for test coins",
       PHASES[3],
       [
         coordinator(function (context) {
-          t.showFace("Asking the faucet", context.state.receive.address);
+          t.showFace("Asking for test coins", context.state.receive.address);
           return C.network.claim(context.state.receive.address).then(function (paid) {
             context.state.funding = paid.txid;
             t.detail("faucet transaction", paid.txid);
             t.verdict.dataset.state = "good";
-            t.verdict.textContent = "The faucet sent "
-              + (paid.amount_sat / 1e8).toFixed(8) + " to the wallet. " + NOT_REAL;
+            t.verdict.textContent = (paid.amount_sat ? sats(paid.amount_sat) + " on the way. " : "On the way. ")
+                  + NOT_REAL;
             t.showFace("Coins on the way", paid.txid);
           });
         }),
         coordinator(function (context) {
           return waitForBlock(t, context.state.funding, "the faucet's payment",
-                              "Waiting for Bitsaga Signet to put it in a block.");
+                              "Waiting for a block.");
         }),
       ]));
 
     steps.push(step(
-      "Build the spend",
+      "Make a payment",
       PHASES[4],
       [
         coordinator(function (context) {
           var state = context.state;
-          t.showFace("Building the spend", "One input, one output, and the "
-                     + "script that needs two signatures.");
+          t.showFace("Making a payment", "Needs 2 signatures");
           return C.network.proof(state.funding).then(function (proof) {
             return C.transactionOutputs(proof.tx);
           }).then(function (outputs) {
@@ -2558,10 +2573,9 @@
             t.detail("paying", state.change.address);
             t.detail("unsigned PSBT", state.psbt);
             t.verdict.dataset.state = "good";
-            t.verdict.textContent = "Ready to sign: "
-              + (Number(state.amount) / 1e8).toFixed(8) + " to " + state.change.address
-              + ", with " + FEE + " sat of fee. " + NOT_REAL;
-            t.showFace("Unsigned transaction", state.frames.length + " codes to hold up");
+            t.verdict.textContent = "Payment ready: " + sats(state.amount)
+              + ". Fee: " + sats(FEE) + ".";
+            t.showFace("Payment to sign", state.frames.length + " QR codes");
           });
         }),
       ]));
@@ -2570,12 +2584,12 @@
     steps.push(signWith(1));
 
     steps.push(step(
-      "Put the two signatures together and send it",
+      "Combine and send",
       PHASES[5],
       [
         coordinator(function (context) {
           var state = context.state;
-          t.showFace("Finishing it", "Two signatures into one witness.");
+          t.showFace("Combining", "2 signatures");
           return Promise.all(state.signed.map(function (psbt) {
             return C.partialSignatures(psbt);
           })).then(function (found) {
@@ -2599,8 +2613,8 @@
               throw new Error("the network gave the transaction a different id");
             }
             t.verdict.dataset.state = "good";
-            t.verdict.textContent = "Sent to Bitsaga Signet: " + state.spend.txid;
-            t.showFace("Broadcast", state.spend.txid);
+            t.verdict.textContent = "Sent: " + state.spend.txid;
+            t.showFace("Sent", state.spend.txid);
           });
         }),
         coordinator(function (context) {
@@ -2616,14 +2630,9 @@
       [
         coordinator(function (context) {
           t.verdict.dataset.state = "good";
-          t.verdict.textContent = "Confirmed on Bitsaga Signet: "
-            + context.state.spend.txid;
+          t.verdict.textContent = "Confirmed: " + context.state.spend.txid;
           t.showFace("Confirmed", context.state.spend.txid);
-          t.doText.textContent =
-            "Everything above happened in this tab. The one thing to carry away: "
-            + "all three keys were on one device here, which is fine for a demo "
-            + "and wrong for real funds, where the keys belong in different "
-            + "places and different hands.";
+          t.doText.textContent = "With real coins: 3 signers, in 3 places.";
           return Promise.resolve();
         }),
       ],
@@ -2652,8 +2661,7 @@
           if (generation !== t.generation) return reject(CANCELLED);
           t.detail(what + " confirmed in block", String(proof.height), true);
           t.verdict.dataset.state = "good";
-          t.verdict.textContent = "Confirmed on Bitsaga Signet in block "
-            + proof.height + ". " + NOT_REAL;
+          t.verdict.textContent = "Confirmed in block " + proof.height + ". " + NOT_REAL;
           t.showFace("Confirmed", "Block " + proof.height);
           resolve();
         }, function (error) {
@@ -2731,33 +2739,34 @@
       var picker = element("div");
       picker.id = "start-tutorial";
       firmware = firmware || "stock";
-      Object.keys(REGISTRY).forEach(function (id) {
+      picker.appendChild(element("p", "tut-offer", "Show me how"));
+      // Simplest first. The passphrase box is not here: it is one more thing to
+      // read before anything has happened, and the walkthrough's own panel
+      // offers it before Play.
+      ["single", "multi", "musig"].forEach(function (id) {
         var entry = REGISTRY[id];
         if (entry.firmwares.indexOf(firmware) < 0 || entry.offer === false) return;
-        var item = element("div");
-        var button = element("button", "tut-start", entry.title);
+        var button = element("button", "tut-start");
         button.type = "button";
-        item.appendChild(button);
-        var checkbox = null;
-        if (id === "single") {
-          var label = element("label", "tut-choice-note");
-          checkbox = element("input");
-          checkbox.type = "checkbox";
-          label.appendChild(checkbox);
-          label.appendChild(document.createTextNode(" Add a passphrase"));
-          item.appendChild(label);
-        }
+        iconInto(button, ICONS.play, entry.title);
+        // The visible words are the name, so nothing overrides them.
+        button.removeAttribute("aria-label");
+        button.removeAttribute("title");
+        var words = element("span");
+        words.appendChild(element("b", null, entry.title));
+        words.appendChild(document.createTextNode(" "));
+        words.appendChild(element("small", null, entry.sub));
+        button.appendChild(words);
         button.addEventListener("click", function () {
           track("open", id);
           var params = new URLSearchParams(location.search);
           params.set("tutorial", id);
           params.set("firmware", firmware);
           params.delete("mode");
-          if (checkbox && checkbox.checked) params.set("passphrase", "1");
-          else params.delete("passphrase");
+          params.delete("passphrase");
           location.search = params.toString();
         });
-        picker.appendChild(item);
+        picker.appendChild(button);
       });
       container.appendChild(picker);
       return picker;

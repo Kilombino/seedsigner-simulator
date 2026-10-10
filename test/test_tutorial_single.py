@@ -208,7 +208,7 @@ def boot(context, chain, query, page=None, log=None):
 
 def start(page):
     control(page, "Play")
-    page.get_by_role("button", name="Random noise instead", exact=True).click()
+    page.get_by_role("button", name="Random noise", exact=True).click()
 
 
 def mnemonic_from_qr(seedqr):
@@ -428,7 +428,7 @@ def pending_finalize(page, log):
     control(page, "Pause")
     quiet(page, log)
     step_until(page, "t.currentScreen() === 'SeedFinalizeScreen'")
-    step_until(page, "t.steps[t.at].title === 'Finish loading the seed'")
+    step_until(page, "t.steps[t.at].title === 'Finish loading'")
     assert log.last_screen() == "SeedFinalizeScreen"
     assert not log.seen(r"display\(\) enter: SeedOptionsScreen")
     page.locator(".tut-fold.floating > summary").click()
@@ -462,7 +462,7 @@ def restart(page, log):
           all(params.get(key) == [value] for key, value in
               (("tutorial", "single"), ("firmware", "stock"), ("passphrase", "1"), ("mode", "play")))
           and page.locator("#tutorial-passphrase").is_checked()
-          and page.get_by_role("button", name="Random noise instead", exact=True).is_visible())
+          and page.get_by_role("button", name="Random noise", exact=True).is_visible())
     check("Begin again clears all previous seed, wallet and spend state",
           page.evaluate("() => { const t = " + CURRENT + "; return "
                         "!t.finished && !t.state && t.mode === 'idle'; }")
@@ -588,18 +588,22 @@ def main():
                     page.locator("#wallet-button").click()
                     picker = page.locator("#wallet #start-tutorial")
                     picker.wait_for(state="visible")
-                    check("stock drawer offers Single sig, Multisig and an unchecked passphrase",
-                          picker.get_by_role("button").all_text_contents() == ["Single sig", "Multisig"]
-                          and not picker.get_by_role("checkbox").is_checked())
-                    picker.get_by_role("checkbox").check()
+                    # The passphrase box left the drawer: the walkthrough's own panel
+                    # offers it before Play, which is where this scenario ticks it.
+                    check("stock drawer offers Single sig and Multisig, and no passphrase box",
+                          picker.locator(".tut-start b").all_text_contents() == ["Single sig", "Multisig"]
+                          and picker.get_by_role("checkbox").count() == 0)
                     log.lines.clear()
                     with page.expect_navigation():
-                        picker.get_by_role("button", name="Single sig", exact=True).click()
+                        picker.locator(".tut-start", has_text="Single sig").click()
                     params = parse_qs(urlsplit(page.url).query)
                     assert all(params.get(key) == [value] for key, value in
-                               (("tutorial", "single"), ("firmware", "stock"), ("passphrase", "1")))
+                               (("tutorial", "single"), ("firmware", "stock")))
+                    assert "passphrase" not in params
                 page, log = boot(context, chain, query, page,
                                  log if page is not None else None)
+                if scenario == "prechecked":
+                    page.locator("#tutorial-passphrase").check()
                 check(f"{scenario}: actual single tutorial and stock firmware mounted",
                       page.evaluate(CURRENT + ".firmware") == "stock"
                       and page.locator("#tutorial-passphrase").is_checked() == (scenario == "prechecked"))

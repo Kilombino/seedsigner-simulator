@@ -87,7 +87,7 @@
   // Six words where there were twenty. Everything the long version said is
   // still true and still on the page, in the panel behind the i; what this
   // line has to do is stop somebody thinking these coins are theirs.
-  var NOT_A_WALLET = "Signet coins, worth nothing.";
+  var NOT_A_WALLET = "Test coins. Worth nothing.";
 
   // The device path to the account key, spelled out because the whole point of
   // the landing state is that nobody has to guess it. It ends where the device's
@@ -287,6 +287,9 @@
     // own progress list further down and owns that name; and not a flex column,
     // which was the first attempt and why the numbers did not appear at all --
     // flex items are not list items, and ::marker only exists on a list item.
+    ".wal-diy{margin:.6rem 0 0}",
+    ".wal-diy>summary{cursor:pointer;color:#8b939e;font-size:.88rem}",
+    ".wal-diy>summary:hover,.wal-diy[open]>summary{color:#d7dbe0}",
     ".wal-howto{margin:.9rem 0 0;padding:0 0 0 1.5rem;list-style:decimal}",
     ".wal-howto li{margin:0 0 .85rem}",
     ".wal-howto li:last-child{margin-bottom:0}",
@@ -1776,14 +1779,24 @@
   // visit begins there. The last step is the one that used to be a sentence on
   // its own -- "leave the QR up, this panel reads it" reads as a riddle with
   // nothing before it, and as an instruction once it is step three of three.
+  //
+  // The walkthroughs come first now, and the three steps fold under "Do it
+  // yourself". Somebody new opens this to be shown, not to be given a path
+  // through menus they have never seen. The steps stay one press away for
+  // anybody who wants to drive, and open on their own where there is no
+  // walkthrough to offer.
   Wallet.prototype.renderIdle = function () {
     var self = this;
+    if (scope.WalletTutorial) scope.WalletTutorial.offer(this.body, scope.__firmware);
+    var diy = element("details", "wal-diy");
+    diy.open = !scope.WalletTutorial;
+    diy.appendChild(element("summary", null, "Do it yourself"));
     var steps = element("ol", "wal-howto");
     steps.appendChild(step("Make a seed", SEED_PATH));
     steps.appendChild(step("Export its key", EXPORT_PATH));
     steps.appendChild(step("Leave the QR up. This reads it.", null));
-    this.body.appendChild(steps);
-    if (scope.WalletTutorial) scope.WalletTutorial.offer(this.body, scope.__firmware);
+    diy.appendChild(steps);
+    this.body.appendChild(diy);
     this.sayInto(this.body);
   };
 

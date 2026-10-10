@@ -336,14 +336,14 @@ def stock_qr(browser):
               and page.locator(".cardtray-card").count() == 0)
         check("stock multisig replaces only the two card phases",
               page.evaluate("window.WalletTutorial.current.phases")
-              == ["Scan three seeds", "Export the keys", "Build the wallet",
-                  "Get test coins", "Sign it twice", "Send it"])
+              == ["Load 3 private keys", "Public keys to wallet", "Build the wallet",
+                  "Get test coins", "Sign with 2 of 3", "Send it"])
         page.evaluate("() => { const t = window.WalletTutorial.current; "
                       "t.pace = () => Promise.resolve(); t.beat = () => Promise.resolve(); }")
         mark = log.mark()
         page.locator('#tutorial button[aria-label="Play"]').click()
         check("stock multisig Play does not show the entropy chooser",
-              not page.get_by_role("button", name="Random noise instead", exact=True).is_visible())
+              not page.get_by_role("button", name="Random noise", exact=True).is_visible())
         log.wait(r"display\(\) enter: ScanScreen\b", 90, "Play directly opens seed scanning", mark)
         wait(page, "t.state && t.state.keys && t.state.keys[0]", "first optical multisig account", 180)
         first_key = page.evaluate("window.WalletTutorial.current.state.keys[0]")
@@ -498,12 +498,12 @@ def doomsigner_card(browser):
         assert page.evaluate("window.WalletTutorial.current.id") == "multi"
         page.evaluate("""() => {
             const t = window.WalletTutorial.current;
-            t.pace = text => text === 'Put a test seed on Card B'
+            t.pace = text => text === 'Private key B'
                 ? new Promise(resolve => { window.releaseCardBTitle = resolve; })
                 : Promise.resolve();
         }""")
         page.locator('#tutorial button[aria-label="Play"]').click()
-        page.get_by_role("button", name="Random noise instead", exact=True).click()
+        page.get_by_role("button", name="Random noise", exact=True).click()
         stored = log.wait(
             r"\[card\] Card A stored secret (\d+), type 0x(\w+) subtype 0x(\w+), "
             r"label '([^']*)', (\d+) bytes, fingerprint ([0-9a-f]{8})",
@@ -512,7 +512,7 @@ def doomsigner_card(browser):
               (stored.group(2), stored.group(3), int(stored.group(5))) == ("10", "01", 84),
               stored.group(0))
         mark = next(i for i, line in enumerate(log.lines) if stored.group(0) in line)
-        wait(page, "t.stepText.textContent.includes('Card B')", "Doomsigner Card A discard", 90)
+        wait(page, "t.stepText.textContent.includes('Private key B')", "Doomsigner Card A discard", 90)
         page.locator('#tutorial button[aria-label="Pause"]').click()
         page.evaluate("() => window.releaseCardBTitle()")
         wait(page, "t.paused && !t.performing", "stop at Card B")
@@ -648,7 +648,7 @@ def main() -> int:
               and page.locator(".cardtray-card").count() == 3
               and page.evaluate("window.__firmware") == "smartcard")
         page.locator('#tutorial button[aria-label="Play"]').click()
-        page.get_by_role("button", name="Random noise instead", exact=True).click()
+        page.get_by_role("button", name="Random noise", exact=True).click()
         page.locator('#tutorial button[aria-label="Pause"]').click()
         page.wait_for_timeout(500)
         page.locator(".tut-fold.floating > summary").click()
@@ -745,7 +745,7 @@ def main() -> int:
         print("\npacing, and the controls over it")
         page, log = boot(context, logs)
         page.locator('#tutorial button[aria-label="Play"]').click()
-        page.get_by_role("button", name="Random noise instead", exact=True).click()
+        page.get_by_role("button", name="Random noise", exact=True).click()
 
         instruction, _ = next_instruction(page, "")
         gaps = []
@@ -896,7 +896,7 @@ def main() -> int:
             ("wallet=1&firmware=smartcard", ["Single sig", "Multisig"]),
             # DoomSigner is the firmware that can sign a MuSig2 spend, so it is
             # the only one offered that walkthrough.
-            ("wallet=1&firmware=doomsigner", ["MuSig2", "Single sig", "Multisig"]),
+            ("wallet=1&firmware=doomsigner", ["Single sig", "Multisig", "MuSig2"]),
             ("wallet=1&firmware=stock&tutorial=offer", ["Single sig", "Multisig"]),
             ("wallet=1&firmware=smartcard&tutorial=offer", ["Single sig", "Multisig"]),
         ]:
@@ -915,12 +915,13 @@ def main() -> int:
                   resting.locator("#start-tutorial").count() == 1
                   and picker.is_visible() and resting.locator("#wallet").is_visible()
                   and resting.locator("#tutorial").count() == 0)
-            buttons = picker.get_by_role("button")
+            names = picker.locator(".tut-start b")
             check(f"{query}: exactly {labels!r} are offered",
-                  buttons.all_text_contents() == labels
-                  and all(picker.get_by_role("button", name=label, exact=True).is_visible()
+                  names.all_text_contents() == labels
+                  and picker.get_by_role("button").count() == len(labels)
+                  and all(picker.locator(".tut-start", has_text=label).is_visible()
                           for label in labels),
-                  repr(buttons.all_text_contents()))
+                  repr(names.all_text_contents()))
             rest_width = resting.evaluate(
                 "() => [document.documentElement.scrollWidth, window.innerWidth]")
             check(f"{query}: the open drawer fits a narrow phone",

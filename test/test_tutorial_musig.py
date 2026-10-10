@@ -78,7 +78,7 @@ def main():
                     ? new Promise(resolve => { window.releaseBuild = resolve; }) : Promise.resolve();
             }""")
             control(page, "Play")
-            page.get_by_role("button", name="Random noise instead", exact=True).click()
+            page.get_by_role("button", name="Random noise", exact=True).click()
             wait(page, "t.stepText.textContent === 'Build the MuSig2 2 of 3 wallet'", "three card keys", 600)
             control(page, "Pause")
             page.evaluate("window.releaseBuild()")
