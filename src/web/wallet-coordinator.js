@@ -1792,8 +1792,8 @@
     diy.open = !scope.WalletTutorial;
     diy.appendChild(element("summary", null, "Do it yourself"));
     var steps = element("ol", "wal-howto");
-    steps.appendChild(step("Make a seed", SEED_PATH));
-    steps.appendChild(step("Export its key", EXPORT_PATH));
+    steps.appendChild(step("Make a private key", SEED_PATH));
+    steps.appendChild(step("Export its public key", EXPORT_PATH));
     steps.appendChild(step("Leave the QR up. This reads it.", null));
     diy.appendChild(steps);
     this.body.appendChild(diy);
