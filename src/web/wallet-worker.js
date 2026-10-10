@@ -446,6 +446,36 @@ subprocess.call = _failed_call
 for _name in ("run", "check_call", "check_output", "Popen"):
     setattr(subprocess, _name, _no_such_binary)
 
+# --- and no TCP/IP, which is what the device has -----------------------------
+# From ShSi-B13 the fork checks the system it is running on before the home
+# screen, and stops on an "Unhardened Build" warning if any exposure is open
+# (seedsigner/helpers/hardening.py). Here exactly one of those checks fails:
+# Emscripten lets Python create an AF_INET socket, so the fork reports "Open:
+# network" and waits for a press before Home. On the device that check passes.
+# The pi0-smartcard kernel config at the seedsigner-os tag of the same name
+# leaves CONFIG_INET unset, and the kernel in the published B13 pi0-smartcard
+# image matches it: none of the IPv4 sysctls, tcp_rmem or ip_forward, are in it.
+#
+# So the two address families the device does not have are refused here too,
+# with the error a kernel built without them gives, and the wallet goes straight
+# to Home as it does there. The boot check is the only code on the wallet's
+# screens that reaches for a socket.
+#
+# Smartcard only, because that is the image this was checked against. DoomSigner
+# runs the same check and still stops on the warning, as it did before.
+if ${firmware === "smartcard" ? "True" : "False"}:
+    import errno as _errno
+    import socket as _socket
+
+    class _NoInetSocket(_socket.socket):
+        def __init__(self, family=-1, type=-1, proto=-1, fileno=None):
+            # -1 is socket()'s own default, which means AF_INET.
+            if fileno is None and family in (-1, _socket.AF_INET, _socket.AF_INET6):
+                raise OSError(_errno.EAFNOSUPPORT, "Address family not supported by protocol")
+            super().__init__(family, type, proto, fileno)
+
+    _socket.socket = _NoInetSocket
+
 # --- draw to the page instead of a panel -------------------------------------
 import browser_display
 
@@ -724,81 +754,6 @@ if _ss_os is not None:
 
     import seedsigner.controller as _ctrl
     _ctrl.is_seedsigner_os_dev_build = _traced_devbuild
-
-# --- one upstream bug, put back from outside ---------------------------------
-# ShieldSigner B11 -- the tag UPSTREAM pins, and the tag the official
-# pi0-smartcard image is built from -- calls _format_word_password() in
-# password_generator_views.py without importing it. The name is defined in
-# tools_views.py and never brought across, so every word-based password ends in
-# a System Error naming line 893 instead of a password. It is nothing to do with
-# the dice it was first reported from: EFF short, EFF long and BIP39 all reach
-# the same line, whatever the entropy came from. Real B11 hardware has it too.
-#
-# From outside, and only where the name is missing. The wallet zip stays the
-# pinned tree byte for byte -- that is the claim this repository exists to let
-# anyone check -- so this is replaced the way every other seam here is, from
-# this side of the boundary rather than by editing the tree. Upstream's own
-# master fixes it with exactly this import, so the guard turns this into a
-# no-op the day UPSTREAM can move to a tag that carries the fix. There is no
-# such tag yet: B11 is the newest one published.
-#
-# tools_views first, and that order is load bearing. The two modules import each
-# other: password_generator_views pulls its shared helpers from tools_views at
-# the top, and tools_views pulls the password views back in with a star import
-# on its last line, which works only because tools_views is the one that gets
-# imported first and so is fully defined by the time the star runs. Importing
-# password_generator_views first inverts that -- tools_views ends up starring in
-# a module that is still executing its own import block -- and the Tools menu
-# then dies on "name 'ToolsPasswordGeneratorTypeView' is not defined" before it
-# can reach the bug below. Doing it in the order the wallet itself does costs
-# nothing and stays out of that.
-#
-# Broad except on purpose. These are imported lazily by the menu that needs
-# them, so a module that fails to import here would take the whole wallet down
-# with it, where today it only spoils the one menu.
-try:
-    from seedsigner.views import tools_views  # imported first, for the order above
-    from seedsigner.views import password_generator_views as _pgv
-except ImportError:
-    _pgv = None   # stock has no password generator at all
-except Exception as exc:
-    _pgv = None
-    js_log(f"password_generator_views did not import: {type(exc).__name__}: {exc}")
-
-if _pgv is not None and not hasattr(_pgv, "_format_word_password"):
-    from seedsigner.views.tools_views import _format_word_password as _fwp
-    _pgv._format_word_password = _fwp
-    js_log("patched in password_generator_views._format_word_password")
-
-# --- and a second one, same shape -------------------------------------------
-# SeedKeeperSelectView.run() reads self.seed at two points that both come
-# before the only line that ever assigns it. The assignment is far down the
-# success path, after a secret has been exported; the two reads are on the way
-# out -- "this card holds nothing I can load", and "back was pressed at the
-# secret list" -- so both of the ordinary ways of leaving that screen raise
-# AttributeError instead of leaving it. Loading from a freshly initialised card
-# is the first one, and it is what a new SeedKeeper does.
-#
-# Both reads ask the same question, isinstance(self.seed, AezeedSeed), to decide
-# whether to return to the aezeed passphrase screen rather than straight back.
-# So the attribute is given the value the assignment further down uses, at
-# construction, which answers that question correctly in both directions: no
-# pending seed is not an AezeedSeed and goes back, and a pending aezeed still
-# reaches its passphrase screen. Setting it only when it is missing leaves a
-# fixed upstream alone.
-#
-# Still open on upstream's master, unlike the one above.
-if _pgv is not None:
-    from seedsigner.views.seed_views import SeedKeeperSelectView as _sksv
-    _orig_sksv_init = _sksv.__init__
-
-    def _sksv_init(self, *args, **kwargs):
-        _orig_sksv_init(self, *args, **kwargs)
-        if not hasattr(self, "seed"):
-            self.seed = self.controller.storage.get_pending_seed()
-
-    _sksv.__init__ = _sksv_init
-    js_log("patched in SeedKeeperSelectView.seed")
 
 # --- which Bitcoin network the wallet is set to ------------------------------
 # The page has to show this, and the page must not be the one that knows it: a

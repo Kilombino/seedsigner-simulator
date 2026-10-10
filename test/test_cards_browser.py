@@ -38,7 +38,13 @@ def press(page, key, times=1):
 
 
 def open_card_info(page, log):
-    """Home -> Tools -> Smartcard Tools -> Common Functions -> Card Info.
+    """Home -> Tools -> Smartcard Tools -> SeedKeeper Functions -> Card Settings
+    -> Card Info.
+
+    That is the smartcard fork's route since ShSi-B13, which split Smartcard
+    Tools per applet and moved Card Info into each applet's Card Settings. The
+    tray's cards are SeedKeepers, so the SeedKeeper menu is the one to take.
+    DoomSigner still has the B11 menu, Common Functions -> Card Info.
 
     The caller is responsible for being at home when this is called.
     """
@@ -49,10 +55,18 @@ def open_card_info(page, log):
     press(page, "ArrowDown", 3)         # new seed, new seed, passwords, [smartcard]
     press(page, "Enter")
     page.wait_for_timeout(600)
-    press(page, "Enter")                # Common Functions, first in the list
+    if harness.FIRMWARE == "doomsigner":
+        press(page, "Enter")            # Common Functions, first in the list
+        page.wait_for_timeout(600)
+        press(page, "ArrowDown")        # Device Filter -> [Card Info]
+        press(page, "Enter")
+        return
+    press(page, "Enter")                # SeedKeeper Functions, first in the list
     page.wait_for_timeout(600)
-    press(page, "ArrowDown")            # Device Filter -> [Card Info]
+    press(page, "ArrowDown", 7)         # secrets ... free space -> [Card Settings]
     press(page, "Enter")
+    page.wait_for_timeout(600)
+    press(page, "Enter")                # Card Info, first in the list
 
 
 def back_to_home(page, log):

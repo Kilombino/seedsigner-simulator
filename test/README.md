@@ -319,11 +319,11 @@ the vector's `b2269592`, and the wallet announces the screens it reached, where
 `SeedExportXpubDetailsScreen` is only reachable if pysatochip recovered the right
 key from *both* signatures on *every* answer, since it raises otherwise.
 
-One of its checks asserts a bug on purpose. At the pinned tag the import screen
-cannot report success: `card_bip32_import_seed()` returns the authentikey and
-the view unpacks it as `(response, sw1, sw2)`, so a successful import is what
-raises `TypeError`. The card is seeded either way. The check is there so that the
-day upstream fixes it, this fails and says so.
+At `SeSi-0.8.7+ShSi-B11` one of its checks asserted a bug on purpose: the import
+screen could not report success, because `card_bip32_import_seed()` returns the
+authentikey and the view unpacked it as `(response, sw1, sw2)`, so a successful
+import raised `TypeError`. B13, the tag UPSTREAM pins now, fixed it, and the
+check asserts the wallet's own Success screen instead.
 
 **`test_cards_seedkeeper.py`** -- the two flows the SeedSigner+ Smartcard is sold
 for, on a **SeedKeeper**, end to end through the wallet's own screens: scan the
@@ -348,7 +348,7 @@ because card state living only in memory is a decision rather than an oversight.
 
 **`test_cards_seedkeeper_descriptor.py`** -- the other flow the card is sold for,
 a **multisig wallet descriptor** travelling on a SeedKeeper instead of being
-scanned. Half of it works, and this file is where the halves are separated.
+scanned, onto the card and back off it.
 
 A 2 of 3 over three published BIP39 vectors goes in by camera, so `2 of 3` and
 three fingerprints on the wallet's own screen say embit really parsed it. Then
@@ -358,26 +358,23 @@ label the wallet asked for, and 450 bytes for a 448-character descriptor, which
 is the two-byte length a v2 card's layout puts in front of it. The wallet reaches
 its own Success screen and no warning goes up on the way.
 
-*Load MultiSig Descriptor* then hits a wall that is upstream's and has nothing to
-do with which pysatochip is shipped. Every view that reads a SeedKeeper's headers
-by name uses `SEEDKEEPER_DIC_TYPE`, and `smartcard_views.py` imports it inside a
+*Load MultiSig Descriptor* is then driven to the descriptor screen: the card
+lists what the save wrote, the wallet asks it for that same secret id, and embit
+parses what comes back. At `SeSi-0.8.7+ShSi-B11` this was a wall that was
+upstream's: every view that reads a SeedKeeper's headers by name uses
+`SEEDKEEPER_DIC_TYPE`, and `smartcard_views.py` imported it inside a
 `try`/`except ImportError` together with three modules that exist in no published
-pysatochip, so the import always fails and every name in it stays undefined. The
-screen raises `NameError: name 'SEEDKEEPER_DIC_TYPE' is not defined` and puts
-that sentence up. The checks are that the warning is what happens, that **the
-card was never asked for the descriptor** and that it refused nothing, so what is
-being asserted is the wallet's failure rather than the simulator's. The three
-missing modules are checked out of the wallet zip in the same run, so the reason
-is evidence and not a story.
+pysatochip, so the screen raised `NameError: name 'SEEDKEEPER_DIC_TYPE' is not
+defined`. B13 imports it from the two modules pysatochip does have, and both are
+checked out of the wallet zip in the same run.
 
-This file used to assert that *both* screens were blocked, by
+This file once asserted that *both* screens were blocked, by
 `KeyError: 'Descriptor'`, and that half was ours: PyPI's pysatochip 0.17.0 has no
 name for `0xC1` and the device does not use PyPI. See the pysatochip note in
 `build/build-wallet-zip.sh`. Everything the card end needs is proved next door in
 `test_cards.py`: the same descriptor stored as type `0xC1`, read back byte for
 byte, its header parsed by pysatochip and its cost checked against upstream's own
-size arithmetic. On the day upstream fixes that import, the load check fails and
-says so.
+size arithmetic.
 
 **`test_mainnet.py`** -- mainnet, on purpose. The simulator ships on Testnet and
 the page shouts when anybody moves it to Mainnet, because a seed typed into a

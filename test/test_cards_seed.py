@@ -20,8 +20,7 @@ and reaching SeedExportXpubDetailsScreen means pysatochip verified both
 signatures on every extended key the card answered with, because it raises
 rather than returning if it cannot. The screenshots are evidence, not proof.
 
-One assertion here is deliberately an assertion about a bug. The import screen
-cannot report success at the pinned tag:
+At ShSi-B11 the import screen could not report success:
 
     File "seedsigner/views/smartcard_views.py", line 3643, in run
       _resp, sw1, sw2 = Satochip_Connector.card_bip32_import_seed(...)
@@ -29,11 +28,12 @@ cannot report success at the pinned tag:
 
 CardConnector.card_bip32_import_seed() returns the card's authentikey, not a
 (response, sw1, sw2) triple -- that is the Keycard backend's signature, and
-ToolsSatochipImportSeedView unpacks every backend's return value the same way.
-So on a Satochip it is a *successful* import that raises. Nothing here works
-around it: the card is seeded either way, because the APDU succeeded before the
-wallet mishandled the answer, and the rest of this test goes on to use it. It is
-present on upstream's dev tip too, so it is not something a newer pin fixes.
+ToolsSatochipImportSeedView unpacked every backend's return value the same way.
+So on a Satochip it was a *successful* import that raised, and this file asserted
+as much. ShSi-B13, the tag UPSTREAM pins now, unpacks only the Keycard backend's
+answer, asks the card for its status afterwards and refuses unless it reports a
+seeded key, so the import ends on the wallet's own Success screen and that is
+what is asserted below. DoomSigner carries the same fix.
 
 The seed is the standard BIP39 test vector "army van defense ...", the same one
 the scan tests hold up. Nothing about it is secret and nothing should ever hold
@@ -97,7 +97,10 @@ def open_satochip_menu(page, log):
     press(page, "ArrowDown", 3)         # new seed, new seed, passwords, [smartcard]
     press(page, "Enter")
     page.wait_for_timeout(600)
-    press(page, "ArrowDown", 2)         # Common, SeedKeeper -> [Satochip]
+    if harness.FIRMWARE == "doomsigner":
+        press(page, "ArrowDown", 2)     # Common, SeedKeeper -> [Satochip]
+    else:
+        press(page, "ArrowDown")        # SeedKeeper -> [Satochip]; B13 has no Common
     press(page, "Enter")
     page.wait_for_timeout(600)
 
@@ -199,18 +202,17 @@ def main() -> int:
         check("the card derives the test vector's master key from what it was handed",
               seeded.group(2) == FINGERPRINT, f"{seeded.group(1)} bytes -> {seeded.group(2)}")
 
-        # And then the wallet drops it. See this file's header: the import screen
-        # cannot report success at the pinned tag, and this check exists so that
-        # stops being silent -- if it starts failing, upstream fixed it.
-        window = wait_screen(log, "WarningScreen", importing, 180,
+        # And the wallet says so. See this file's header: at B11 the import screen
+        # could not report success, and this check asserted that instead.
+        window = wait_screen(log, "LargeIconStatusScreen", importing, 180,
                              "the wallet to finish with the import")
-        check("the wallet's own success screen is unreachable (upstream bug, see header)",
-              log.seen(r"\[smartcard_views\] Satochip Import Failed: cannot unpack non-iterable ECPubkey object",
-                       importing) is not None)
+        check("the wallet reaches its own success screen",
+              log.seen(r"\[smartcard_views\] Seed Successfully Imported", importing) is not None)
+        check("and nothing failed on the way",
+              log.seen(r"display\(\) enter: WarningScreen", importing) is None)
         page.screenshot(path=harness.artifact("cards-seed-imported.png"))
         press(page, "Enter")
-        check("the card is seeded anyway, because the APDU succeeded",
-              pill_becomes(page, 0, "seeded"), pill(page, 0))
+        check("the tray shows Card A seeded", pill_becomes(page, 0, "seeded"), pill(page, 0))
         check("the other two cards are untouched",
               (pill(page, 1), pill(page, 2)) == ("blank", "blank"),
               f"{pill(page, 1)}, {pill(page, 2)}")
@@ -219,7 +221,10 @@ def main() -> int:
         print("\nreading it back off the card")
         window = wait_screen(log, "MainMenuScreen", window, 60, "the wallet to come home")
         open_satochip_menu(page, log)
-        press(page, "ArrowDown", 2)         # Initialise, Export Xpub -> [Load as Descriptor]
+        if harness.FIRMWARE == "doomsigner":
+            press(page, "ArrowDown", 2)     # Initialise, Export Xpub -> [Load as Descriptor]
+        else:
+            press(page, "ArrowDown", 3)     # Initialise, Export Xpub, Fingerprint -> [Load as Descriptor]
         window = log.mark()
         press(page, "Enter")
         reading = wait_screen(log, "ButtonListScreen", window, 180, "the script type list")

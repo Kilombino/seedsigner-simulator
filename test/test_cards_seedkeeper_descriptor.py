@@ -1,62 +1,43 @@
 """
 Take a 2 of 3 multisig wallet descriptor to a simulated SeedKeeper through the
-wallet's own screens, and find out how far it gets.
+wallet's own screens, and back off it again.
 
 This is the flow after the seed one: a multisig setup that travels on a card
 instead of being scanned, so a signer picks up the quorum, the xpubs and the
 derivation paths from the SeedKeeper it already carries. The wallet has two
 screens for it, `ToolsSeedkeeperSaveDescriptorView` and
-`ToolsSeedkeeperLoadDescriptorView`, and they now end in different places:
-**save works, load does not.**
+`ToolsSeedkeeperLoadDescriptorView`, and at ShSi-B13 both work.
 
-This file used to assert that neither could work, and that was our fault rather
-than upstream's. A SeedKeeper v2 files a descriptor under its own secret type,
-0xC1, and the save screen asks for that type by name:
+This file once asserted that neither could work, and the first wall was ours
+rather than upstream's. A SeedKeeper v2 files a descriptor under its own secret
+type, 0xC1, and the save screen asks for that type by name:
 
     header = Satochip_Connector.make_header("Descriptor", ...)
 
-PyPI's pysatochip 0.17.0, which this fork's requirements.txt asks for and which
-this repository used to ship, has no name for 0xC1: its SEEDKEEPER_DIC_TYPE
-stops at 0xC0 'Data', so that line raised `KeyError: 'Descriptor'` before a byte
-reached the card. But the device never runs that package. The SeedSigner OS
-image builds 3rdIteration/pysatochip from GitHub at the tag 0.6a and deletes
-requirements.txt from the rootfs, and that tree has `0xC1: 'Descriptor'`. So the
-simulator was failing at a wall that does not exist on the hardware it claims to
-be, which is the one kind of wrong this project cannot afford. The build now
-pins what the device builds; see the pysatochip note in
-build/build-wallet-zip.sh.
+PyPI's pysatochip 0.17.0, which the fork's requirements.txt asked for until
+B13 and which this repository used to ship, has no name for 0xC1: its
+SEEDKEEPER_DIC_TYPE stops at 0xC0 'Data', so that line raised
+`KeyError: 'Descriptor'` before a byte reached the card. But the device never
+ran that package. The SeedSigner OS image builds 3rdIteration/pysatochip from
+GitHub at the tag 0.6a and deletes requirements.txt from the rootfs, and that
+tree has `0xC1: 'Descriptor'`. So the simulator was failing at a wall that does
+not exist on the hardware it claims to be, which is the one kind of wrong this
+project cannot afford. The build pins what the device builds; see the
+pysatochip note in build/build-wallet-zip.sh.
 
-**Saving is a real flow now**, and it is driven to the end here: the card is
-handed a 0xC1 secret carrying the whole descriptor behind a two-byte length, and
-the wallet reaches its own Success screen.
+The second wall was upstream's, and B13 took it down. Every view that reads a
+SeedKeeper's headers by name, the load screen among them, uses
+`SEEDKEEPER_DIC_TYPE`. At B11 `seedsigner/views/smartcard_views.py` imported it
+beside three modules that exist in no published pysatochip, inside a `try` whose
+`except ImportError: pass` swallowed the failure, so the name was never bound
+and the load screen put `NameError: name 'SEEDKEEPER_DIC_TYPE' is not defined`
+on a warning screen. That is what this file asserted then. B13 imports it from
+the two modules pysatochip does have, CardConnector and JCconstants, and logs
+the failure instead of swallowing it. Both modules are checked out of the
+wallet zip below, so that is evidence rather than a story, and the load is
+driven to the descriptor screen.
 
-**Loading hits a different wall, and this one is upstream's.** Every view that
-reads a SeedKeeper's headers by name -- the load screen among them -- uses
-`SEEDKEEPER_DIC_TYPE`, and `seedsigner/views/smartcard_views.py` never binds it:
-
-    try:
-        from pysatochip import satochip
-        from pysatochip.exception import UnexpectedSW12Error
-        from pysatochip.JCconstants import SEEDKEEPER_DIC_TYPE, ...
-        from pysatochip.satochip_protocol_helper import format_sw_error
-    except ImportError:
-        pass
-
-Three of those four modules exist in no published pysatochip: not in PyPI
-0.17.0, not at the tag the device builds, not on the fork's own default branch.
-So the block always raises, `pass` swallows it, and the names in it -- including
-the one JCconstants really does have -- are never defined. The load screen
-raises `NameError: name 'SEEDKEEPER_DIC_TYPE' is not defined` on the first
-header it reads, and its own `except` puts that sentence on a warning screen.
-That is asserted below, and the missing modules are checked out of the wallet
-zip so the reason is evidence rather than a story.
-
-Save survives only because it reads the headers of a card it has just found
-empty, so its loop body never runs. Saving a second descriptor to the same card
-raises the same NameError.
-
-Nothing here works around any of it, and nothing patches `seedsigner/`. The day
-upstream fixes that import, the load check fails and says so.
+Nothing here works around any of it, and nothing patches `seedsigner/`.
 
 The three seeds behind the descriptor are published BIP39 test vectors, derived
 in make_qr_y4m.multisig_descriptor(). Nothing about them is secret and nothing
@@ -87,15 +68,13 @@ Y4M = harness.artifact("descriptor.y4m")
 # whichever key the cursor started on.
 LABEL = "aaaa"
 
-# The modules smartcard_views.py asks for at import time. Checked against the
-# zip the browser is about to run, because "the import fails" is the whole
-# explanation for the load screen's NameError and it should not be taken on
-# trust.
+# The modules smartcard_views.py asks for at import time, at ShSi-B13. Checked
+# against the zip the browser is about to run, because "the import succeeds" is
+# the whole reason the load screen can read headers now, and it should not be
+# taken on trust.
 IMPORTED_AT_MODULE_SCOPE = [
-    "pysatochip/satochip.py",
-    "pysatochip/exception.py",
+    "pysatochip/CardConnector.py",
     "pysatochip/JCconstants.py",
-    "pysatochip/satochip_protocol_helper.py",
 ]
 
 
@@ -108,7 +87,9 @@ def open_seedkeeper_menu(page, log):
     press(page, "ArrowDown", 3)         # new seed, new seed, passwords, [smartcard]
     press(page, "Enter")
     page.wait_for_timeout(600)
-    press(page, "ArrowDown")            # Common -> [SeedKeeper]
+    if harness.FIRMWARE == "doomsigner":
+        press(page, "ArrowDown")        # Common -> [SeedKeeper]
+    # else SeedKeeper is first: B13 split the menu per applet and dropped Common
     press(page, "Enter")
     page.wait_for_timeout(600)
 
@@ -125,12 +106,9 @@ def main() -> int:
     with zipfile.ZipFile(wallet_zip) as archive:
         shipped = set(archive.namelist())
     absent = [name for name in IMPORTED_AT_MODULE_SCOPE if name not in shipped]
-    check("three of the four modules smartcard_views.py imports do not exist, "
-          "so none of the names in that import are ever defined",
-          absent == ["pysatochip/satochip.py",
-                     "pysatochip/exception.py",
-                     "pysatochip/satochip_protocol_helper.py"],
-          f"absent from the wallet zip: {absent}")
+    check("both modules smartcard_views.py imports are in the zip, "
+          "so SEEDKEEPER_DIC_TYPE is bound",
+          absent == [], f"absent from the wallet zip: {absent}")
 
     with sync_playwright() as p:
         browser = p.chromium.launch(args=[
@@ -226,29 +204,39 @@ def main() -> int:
               pill_becomes(page, 0, "seeded"), pill(page, 0))
         press(page, "Enter")
 
-        # --- and try to read it back off it -----------------------------------
-        # Here is the wall, and see this file's header for why it is upstream's
-        # rather than ours: the view reads SEEDKEEPER_DIC_TYPE on the first
-        # header the card hands it, that name was never bound, and its own except
-        # puts the NameError on the screen.
+        # --- and read it back off it ------------------------------------------
+        # Where B11 stopped, and see this file's header for why B13 does not:
+        # the view reads SEEDKEEPER_DIC_TYPE on every header the card hands it,
+        # and at B13 that name is bound.
         print("\nloading it back off the SeedKeeper")
         window = wait_screen(log, "ButtonListScreen", window, 180, "the SeedKeeper menu")
         press(page, "ArrowDown", 3)         # secrets, password, delete -> [load]
         reading = log.mark()
         press(page, "Enter")
 
-        window = wait_screen(log, "WarningScreen", reading, 240,
-                             "the wallet's answer about the card")
-        check("the load screen cannot read back what the save screen just wrote "
-              "(upstream bug, see header)", True,
-              "the wallet puts up: name 'SEEDKEEPER_DIC_TYPE' is not defined")
-        check("it never got as far as asking the card for the descriptor",
-              log.seen(r"\[card\] Card A exporting secret", reading) is None)
-        check("nor was one refused, which would be a different story",
-              log.seen(r"\[card\] Card A refused", reading) is None)
-        page.screenshot(path=harness.artifact("descriptor-load-failed.png"))
-        page.locator("#screen").screenshot(
-            path=harness.artifact("descriptor-load-error.png"))
+        # Whether the card asks for its PIN again depends on whether the wallet
+        # still holds it from the save, so one is answered if it is asked for.
+        asked = log.wait(r"display\(\) enter: (SeedAddPassphraseScreen|ButtonListScreen)\b",
+                         240, "the PIN or the card's descriptor list", reading)
+        window = reading
+        if asked.group(1) == "SeedAddPassphraseScreen":
+            window = type_pin(page, log, reading)
+            window = wait_screen(log, "ButtonListScreen", window, 240,
+                                 "the card's descriptor list")
+        check("the load screen lists what the save screen just wrote", True)
+        press(page, "Enter")                # the one descriptor, first in the list
+
+        window = wait_screen(log, "MultisigWalletDescriptorScreen", window, 240,
+                             "the descriptor read back off the card")
+        exported = log.seen(r"\[card\] Card A exporting secret (\d+)", reading)
+        check("the wallet asks the card for the secret it stored",
+              exported is not None and exported.group(1) == stored.group(1),
+              f"stored {stored.group(1)}, exported "
+              f"{exported.group(1) if exported else 'nothing'}")
+        check("and turns it back into the 2 of 3", True)
+        check("nothing failed on the way back",
+              log.seen(r"display\(\) enter: WarningScreen", reading) is None)
+        page.screenshot(path=harness.artifact("descriptor-loaded.png"))
 
         # --- and forgets all of it on reload -----------------------------------
         # A card here holds its secrets in one Python object and nowhere else: no

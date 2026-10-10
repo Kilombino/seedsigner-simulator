@@ -657,10 +657,10 @@ def main() -> int:
         check("the progress line is not shown in hands on mode",
               bar_width(page) == 0, f"{bar_width(page)}px")
 
-        wait_instruction(page, "Card A into the reader")
+        wait_instruction(page, "Insert card A")
         page.wait_for_timeout(1500)
         check("the panel waits for the visitor to insert the card",
-              panel(page, ".tut-do") == "Card A into the reader"
+              panel(page, ".tut-do") == "Insert card A"
               and log.last_screen() == "MainMenuScreen")
         page.locator(".cardtray-card").nth(0).click()
         wait_instruction(page, "Seeds")
@@ -671,20 +671,20 @@ def main() -> int:
         for instruction, keys, screen in [
             ("Seeds", ["ArrowRight", "Enter"], "ButtonListScreen"),
             ("Create a seed", ["ArrowDown"] * 4 + ["Enter"], "ButtonListScreen"),
-            ("A new seed, from a photograph", ["Enter"],
+            ("New seed, from a photo", ["Enter"],
              "ToolsImageEntropyLivePreviewScreen"),
-            ("Take the picture", ["Enter"], "ToolsImageEntropyFinalImageScreen"),
-            ("Accept it", ["ArrowRight"], "ButtonListScreen"),
-            ("Twelve words", ["Enter"], "DireWarningScreen"),
-            ("The device says to keep them private", ["Enter"], "SeedWordsScreen"),
-            ("The twelve words it made", ["Enter"] * 3, "SeedWordsBackupTestPromptScreen"),
-            ("Skip the backup check", ["ArrowDown", "ArrowDown", "Enter"],
+            ("Take the photo", ["Enter"], "ToolsImageEntropyFinalImageScreen"),
+            ("Accept", ["ArrowRight"], "ButtonListScreen"),
+            ("12 words", ["Enter"], "DireWarningScreen"),
+            ("Keep them private", ["Enter"], "SeedWordsScreen"),
+            ("The backup: 12 words", ["Enter"] * 3, "SeedWordsBackupTestPromptScreen"),
+            ("Skip the check (demo only)", ["ArrowDown", "ArrowDown", "Enter"],
              "SeedFinalizeScreen"),
             ("Done", ["Enter"], "SeedOptionsScreen"),
             ("Backup seed", ["ArrowDown"] * 3 + ["Enter"], "ButtonListScreen"),
         ]:
             wait_instruction(page, instruction)
-            if instruction == "Take the picture":
+            if instruction == "Take the photo":
                 page.wait_for_timeout(2000)
                 check("hands on waits for the visitor to take the photograph",
                       log.last_screen() == "ToolsImageEntropyLivePreviewScreen"
@@ -693,6 +693,16 @@ def main() -> int:
             for key in keys:
                 page.keyboard.press(key)
                 page.wait_for_timeout(560)
+            if instruction == "Take the photo":
+                # ShSi-B13 takes the shot only once five distinct preview frames
+                # are in, and drops a press that comes before then. A visitor who
+                # sees nothing happen presses again, and so does this. Six seconds
+                # apart, so a press that did land has long since shown its screen.
+                for _ in range(5):
+                    page.wait_for_timeout(6000)
+                    if log.seen(r"display\(\) enter: " + screen + r"\b", since):
+                        break
+                    page.keyboard.press("Enter")
             log.wait(r"display\(\) enter: " + screen + r"\b", 120,
                      instruction, since)
             check(f"{instruction}: the firmware reaches {screen}", True)
@@ -845,7 +855,7 @@ def main() -> int:
               "Phone" in panel(page, ".tut-arrow")
               and "device" in panel(page, ".tut-arrow"), panel(page, ".tut-arrow"))
         check("and says what moved",
-              panel(page, ".tut-caption") == "The 2 of 3 descriptor",
+              panel(page, ".tut-caption") == "Descriptor",
               panel(page, ".tut-caption"))
         log.wait(r"display\(\) enter: MultisigWalletDescriptorScreen\b", 240,
                  "the device to read the descriptor")

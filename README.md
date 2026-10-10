@@ -1,7 +1,7 @@
 # SeedSigner simulator
 
 [![try it live](https://img.shields.io/badge/try%20it-live-f7931a?style=flat-square)](https://bitsaga.be/seedsigner-simulator/)
-[![smartcard fork](https://img.shields.io/badge/smartcard%20fork-SeSi--0.8.7%2BShSi--B11-blue?style=flat-square)](UPSTREAM)
+[![smartcard fork](https://img.shields.io/badge/smartcard%20fork-SeSi--0.8.7%2BShSi--B13-blue?style=flat-square)](UPSTREAM)
 [![stock](https://img.shields.io/badge/stock-0.8.7-blue?style=flat-square)](UPSTREAM)
 [![reproducible-build](https://img.shields.io/github/actions/workflow/status/bitsagarob/seedsigner-simulator/reproducible-build.yml?branch=main&label=reproducible%20build&style=flat-square)](https://github.com/bitsagarob/seedsigner-simulator/actions/workflows/reproducible-build.yml)
 [![tests](https://img.shields.io/github/actions/workflow/status/bitsagarob/seedsigner-simulator/test.yml?branch=main&label=tests&style=flat-square)](https://github.com/bitsagarob/seedsigner-simulator/actions/workflows/test.yml)
@@ -104,8 +104,9 @@ To run your own fork, `SS_REPO` and `SS_COMMIT` override the pin for one build
   the result:
   `gh attestation verify wallet-smartcard.zip --repo bitsagarob/seedsigner-simulator`.
 - **Upstream's own tests run against our pins**
-  ([`upstream-tests.yml`](.github/workflows/upstream-tests.yml)): 949 from the
-  fork's suite, all of stock's. The 50 skipped want a physical card reader.
+  ([`upstream-tests.yml`](.github/workflows/upstream-tests.yml)): about 2,500
+  from the fork's suite, all of stock's. About 200 of the fork's skip themselves,
+  most for want of a jcardsim build, pyscard or SeedSigner OS's own tools.
 - **The webcam really is the camera.** Same `DecodeQR`, same SeedQR /
   CompactSeedQR / PSBT / UR parsing; only the decoder is the browser's.
 - **One host.** No backend, and the CSP names one other origin,
@@ -156,16 +157,10 @@ pulsing border, and thread-based work such as brute-force address verification
 never completes (camera preview and animated QR are pumped by hand). No timing,
 so no wipe timer, screensaver or battery reading.
 
-**Does not, the fork.** Two upstream bugs, neither worked around here:
-*Initialise with Seed* on Satochip raises on success
-(`ToolsSatochipImportSeedView` unpacks three values from a one-value return), and
-reading a multisig descriptor back off a card dies on
-`name 'SEEDKEEPER_DIC_TYPE' is not defined`, because `smartcard_views.py` imports
-that name beside three modules no published pysatochip has and swallows the whole
-`ImportError`. Saving works: `test_cards.py` reads the 448 characters back at
-APDU level. Also absent: card-to-card secret copy (refused rather than done in
-the clear), card signing, PIN change, 2FA, factory reset. Cards forget on reload,
-deliberately.
+**Does not, the fork.** Card-to-card secret copy (refused rather than done in the
+clear), card signing, PIN change, 2FA, factory reset, and Satodime: the fork lists
+it under Smartcard Tools, and the tray has no Satodime to offer. Cards forget on
+reload, deliberately.
 
 ## How it works
 

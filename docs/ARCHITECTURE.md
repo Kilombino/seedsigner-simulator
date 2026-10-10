@@ -449,35 +449,35 @@ card without it ever appearing in the clear; it needs a session key negotiated w
 that card's public key, and there is no second card here to negotiate with, so
 clone-to-another-card is refused rather than quietly done in plaintext.
 
-Two flows still do not work, and neither is this package's fault.
+Two flows did not work at `SeSi-0.8.7+ShSi-B11`, and neither was this package's
+fault. Both work at B13, the tag UPSTREAM pins now.
 
-`ToolsSatochipImportSeedView` unpacks `card_bip32_import_seed()`'s return value
+`ToolsSatochipImportSeedView` unpacked `card_bip32_import_seed()`'s return value
 into `(response, sw1, sw2)`, but on the pysatochip backend that method returns the
-card's authentikey, so a *successful* import is what raises `TypeError`. The card
-takes the seed; the screen reports failure. See `test/test_cards_seed.py`, which
-asserts it so the day upstream fixes it is not a silent one.
+card's authentikey, so a *successful* import raised `TypeError`. The card took the
+seed; the screen reported failure. B13 unpacks only the Keycard backend's answer
+and confirms the import by asking the card for its status. See
+`test/test_cards_seed.py`, which now drives it to the wallet's own Success screen.
 
-`ToolsSeedkeeperLoadDescriptorView` cannot read a descriptor back, and every other
-view that reads a SeedKeeper's headers by name is stopped in the same place.
-`seedsigner/views/smartcard_views.py` imports the names it needs inside a
-`try: … except ImportError: pass`, and three of the four modules that block asks
+`ToolsSeedkeeperLoadDescriptorView` could not read a descriptor back, and every
+other view that reads a SeedKeeper's headers by name was stopped in the same place.
+At B11 `seedsigner/views/smartcard_views.py` imported the names it needs inside a
+`try: … except ImportError: pass`, and three of the four modules that block asked
 for exist in no published pysatochip: `pysatochip.satochip`,
 `pysatochip.exception` and `pysatochip.satochip_protocol_helper` are absent from
 PyPI 0.17.0, from the tag the device builds, and from the fork's own default
-branch. So the import always raises, the `pass` swallows it, and
-`SEEDKEEPER_DIC_TYPE` (which `JCconstants` really does define) is never bound.
-The load screen reads it on the first header the card hands back and raises
-`NameError: name 'SEEDKEEPER_DIC_TYPE' is not defined`, which its own `except`
-puts on a warning screen.
+branch. So the import always raised, the `pass` swallowed it, and
+`SEEDKEEPER_DIC_TYPE` (which `JCconstants` really does define) was never bound.
+The load screen raised `NameError: name 'SEEDKEEPER_DIC_TYPE' is not defined` on
+the first header the card handed back. B13 imports those names from
+`pysatochip.CardConnector` and `pysatochip.JCconstants`, which the tag the device
+builds does have, and logs a failed import instead of swallowing it.
 
-`ToolsSeedkeeperSaveDescriptorView` **works**, and it survives that same missing
-name only because it reads the headers of a card it has just found empty, so the
-loop that would touch it never runs. Saving a second descriptor to the same card
-raises the same `NameError`. The save screen files the descriptor as secret type
-`0xC1` because it read `protocol_minor_version` off the card and got 2; a v1
-SeedKeeper takes the other branch and stores a descriptor as a `Password`. This
-card reports 2 because that is what the card it stands in for reports, and what
-the seed layout above depends on.
+`ToolsSeedkeeperSaveDescriptorView` files the descriptor as secret type `0xC1`
+because it read `protocol_minor_version` off the card and got 2; a v1 SeedKeeper
+takes the other branch and stores a descriptor as a `Password`. This card reports
+2 because that is what the card it stands in for reports, and what the seed layout
+above depends on.
 
 Until recently the save half was blocked here too, by `make_header("Descriptor",
 …)` raising `KeyError`, and that one was ours: PyPI's pysatochip 0.17.0 stops at
@@ -487,9 +487,8 @@ deletes `requirements.txt` from the rootfs, and that tree has
 `0xC1: 'Descriptor'`. The build now pins what the device builds, which is what
 made a real save flow appear where a wall used to be. See the pysatochip note in
 [`build/build-wallet-zip.sh`](../build/build-wallet-zip.sh).
-`test/test_cards_seedkeeper_descriptor.py` drives the save to the end and the
-load to its wall, and checks the missing modules out of the wallet zip so the
-`NameError` is evidence rather than a story.
+`test/test_cards_seedkeeper_descriptor.py` drives the save and the load to the
+end, and checks the two modules B13 imports out of the wallet zip.
 
 ## The fifth module: screens that show a QR
 
@@ -609,6 +608,14 @@ Raspberry Pi. These are small, but each one is a hard failure without it:
   Emscripten raises `OSError` where those fallbacks catch `FileNotFoundError`, so
   `subprocess` is patched to report the binary as absent, which is both true here
   and the case they already handle.
+- **No TCP/IP, under the smartcard fork.** From `SeSi-0.8.7+ShSi-B13` the fork
+  checks the system it runs on before the home screen and stops on an "Unhardened
+  Build" warning if anything is exposed. Under Pyodide exactly one of its checks
+  fails: Emscripten lets Python create an `AF_INET` socket. The pi0-smartcard
+  device cannot, because its kernel is built without TCP/IP, so there it goes
+  straight to Home. The boot shim therefore refuses `AF_INET` and `AF_INET6`
+  sockets under that firmware, with the error such a kernel gives. DoomSigner runs
+  the same check and still stops on the warning.
 - **No OpenCV, no numpy.** `decode_qr` imports numpy inside a `try` that starts
   with `import cv2`, and opencv is not loaded, so `np` is `None` either way. The
   browser decode is what makes that harmless.

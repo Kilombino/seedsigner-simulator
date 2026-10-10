@@ -33,6 +33,15 @@ signature was verified offline against a BIP143 sighash. The seeds, passphrase
 and transaction are published test vectors and a fabricated spend that never
 existed; nothing holds value.
 
+The smartcard runs here were driven against `SeSi-0.8.7+ShSi-B11`. UPSTREAM pins
+`SeSi-0.8.7+ShSi-B13` now, and those runs have not been re-driven since. B13 is
+known to depart from them in four places: Smartcard Tools is split per
+applet, with no Common Functions and Card Info under each applet's Card Settings;
+Settings lists Change Gap Limit and Max Fee Rate above Advanced; the photograph is
+taken only once five distinct preview frames are in; and a full-spend PSBT whose
+fee is a large share of it raises a risk warning before the no-change one, as
+DoomSigner does in difference #3.
+
 ## Reading the sequences
 
 | key | what it is |

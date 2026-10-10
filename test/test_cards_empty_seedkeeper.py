@@ -3,16 +3,17 @@ Load a seed from a SeedKeeper that has not got one.
 
 The card a visitor meets first is blank, so the first thing they do with "From
 SeedKeeper" is set it up, and the card they then have is initialised and empty.
-Upstream's SeedKeeperSelectView.run() reads self.seed at two points that both
+At ShSi-B11, SeedKeeperSelectView.run() read self.seed at two points that both
 come before the only line that assigns it -- the assignment is far down the
 success path, after a secret has been exported -- so both of the ordinary ways
 of leaving that screen raised AttributeError instead of leaving it: the card
 holding nothing, which is this test, and back at the secret list. What the
 visitor got was a System Error naming an attribute.
 
-Still open on upstream's master, so wallet-worker.js gives the attribute the
-value the assignment further down uses, at construction. The pinned tree is not
-touched, the same as every other seam here.
+wallet-worker.js used to give the attribute a value at construction. ShSi-B13,
+the tag UPSTREAM pins now, reads it with getattr(self, "seed", None) at both
+points, so nothing is patched any more and this proves the pinned tag leaves the
+screen on its own.
 
 The whole walk is by button, and it is the walk from the bug report: insert the
 blank card, ask to load from it, set a PIN, and be told there is nothing on it.
@@ -78,8 +79,6 @@ def main() -> int:
 
         page.goto(harness.wallet_url())
         log.wait(r"display\(\) enter: MainMenuScreen", 240, "the wallet to boot")
-        check("the missing attribute is put back at boot",
-              log.seen(r"patched in SeedKeeperSelectView\.seed") is not None)
 
         log.wait(r"\[card\] tray attached", 60, "the card tray to reach Python")
         page.locator(".cardtray-card").nth(0).click()
