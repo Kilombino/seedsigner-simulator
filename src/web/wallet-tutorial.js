@@ -1425,7 +1425,10 @@
     return runStep(fromStep, fromAction || 0).then(function () {
       context.check();
       self.finished = true;
-      self.doText.textContent = "";
+      // A closing line the last step left stays up. It is the one thing worth
+      // reading once the run is over, and clearing it here had it on screen
+      // for about a second.
+      self.doText.textContent = self.closing || "";
       self.endTransfer();
       self.setProgress(0);
       // The last step returned, so the spend is confirmed and the whole
@@ -2632,7 +2635,8 @@
           t.verdict.dataset.state = "good";
           t.verdict.textContent = "Confirmed: " + context.state.spend.txid;
           t.showFace("Confirmed", context.state.spend.txid);
-          t.doText.textContent = "With real coins: 3 signers, in 3 places.";
+          t.closing = "With real coins: 3 signers, in 3 places.";
+          t.doText.textContent = t.closing;
           return Promise.resolve();
         }),
       ],
