@@ -1,14 +1,12 @@
 """
 Generate a diceware password on the fork, all the way to the words.
 
-The fork's password generator is upstream's, and at the pinned tag it is broken:
-password_generator_views.py calls _format_word_password() without importing it,
-so every word-based password ends in a System Error naming line 893 instead of a
-password. The name is defined in tools_views.py and never brought across.
-Upstream's own master fixes it with exactly that import; there is no released tag
-carrying the fix, and UPSTREAM pins tags rather than branch tips for reasons that
-file explains. So wallet-worker.js puts the name back from outside, the way every
-other seam here is replaced, and this walks the whole flow to prove it took.
+The fork's password generator is upstream's, and at ShSi-B11 it was broken:
+password_generator_views.py called _format_word_password() without importing it,
+so every word-based password ended in a System Error naming line 893 instead of a
+password. wallet-worker.js used to put the name back from outside. ShSi-B13, the
+tag UPSTREAM pins now, imports it itself, so nothing is patched any more and this
+walks the whole flow to prove the pinned tag gets there on its own.
 
 Fork only. Stock has no password generator at all.
 
@@ -78,10 +76,6 @@ def main() -> int:
 
         page.goto(harness.wallet_url())
         log.wait(r"display\(\) enter: MainMenuScreen", 240, "the wallet to boot")
-
-        check("the missing name is put back at boot",
-              log.seen(r"patched in password_generator_views\._format_word_password")
-              is not None)
 
         for key in TO_THE_DICE:
             press(page, key)

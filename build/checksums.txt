@@ -67,7 +67,7 @@ bc40c8a15196236b2314db0856f72ca0b49980cd5413b8c852a7349f5fee0859  src/web/jsQR.j
 a7058d8644db6868defefc8b6b9b5219fc82ee3534a699b87b9f16f087409ccd  src/web/wallet-coordinator.js
 06818db62a87fc02f5dc811ab4a0064588d89a1a7e67da63995a2ff7de7b0841  src/web/wallet-track.js
 3b8e2bf8cd179601a7d4adda94025d02c3cbe5b1ae32272d95001babfb1f3d56  src/web/wallet-tutorial.js
-0ec0e8d0c4fd98e04f8a74d258e36018be21d8811ba8ca45792e0cd2deef86a1  src/web/wallet-worker.js
+6ee6843818287a478b2aac2d0e98da7d56ad58d95224e3644e267c1f9270acb7  src/web/wallet-worker.js
 f7394b4efdcefbe884d1a819d32177263551435e7df84933badd34b8124f5b4e  src/web/wallet.html
 
 # The stand-in packages, which build/build-wallet-zip.sh copies out of the working
