@@ -521,7 +521,7 @@ def doomsigner_card(browser):
               and log.last_screen() == "MainMenuScreen")
         assert log.last_screen() == "MainMenuScreen", "Doomsigner advanced beyond the Card B boundary"
         check("Doomsigner reaches Card B without storing another secret or requesting coins",
-              "Card B" in panel(page, ".tut-step")
+              "Private key B" in panel(page, ".tut-step")
               and not log.seen(r"\[card\] Card B stored secret")
               and not chain.claims and not chain.broadcasts and not chain.unexpected)
         check("Doomsigner card ceremony has no firmware or page exception",
@@ -731,10 +731,10 @@ def main() -> int:
               (stored.group(2), stored.group(3), int(stored.group(5))) == ("10", "01", 84),
               stored.group(0))
         deadline = time.time() + 240
-        while time.time() < deadline and "Card B" not in panel(page, ".tut-step"):
+        while time.time() < deadline and "Private key B" not in panel(page, ".tut-step"):
             page.wait_for_timeout(500)
         check("handing back mid-step lets it finish the card on its own",
-              "Card B" in panel(page, ".tut-step"), panel(page, ".tut-step"))
+              "Private key B" in panel(page, ".tut-step"), panel(page, ".tut-step"))
         # Every step starts its line again from nothing, so this waits for the
         # first action of the new one rather than reading the line at the
         # boundary and calling an honest zero a missing bar.
@@ -840,7 +840,7 @@ def main() -> int:
         context.route(f"{API}/**", faucet)
 
         deadline = time.time() + 300
-        while time.time() < deadline and "descriptor" not in panel(page, ".tut-caption"):
+        while time.time() < deadline and "descriptor" not in panel(page, ".tut-caption").lower():
             page.wait_for_timeout(100)
         stored_c = next((i for i, line in enumerate(log.lines)
                          if "[card] Card C stored secret" in line), len(log.lines))
