@@ -30,12 +30,15 @@ from playwright.sync_api import sync_playwright
 # then right is Settings whichever tile the wallet starts on.
 TO_SETTINGS = ("ArrowDown", "ArrowRight", "Enter")
 
-# Settings, then six down to Advanced, then the first entry inside it, which is
+# Settings, then eight down to Advanced, then the first entry inside it, which is
 # the Bitcoin network. Chosen deliberately over the first setting in the list:
 # this one has options the device is not already on, so accepting one is a real
 # change, and it is the setting anybody pointing the simulator at a test network
 # has to reach.
-TO_NETWORK = ("ArrowDown",) * 6 + ("Enter", "Enter")
+#
+# Eight is the smartcard fork's count at ShSi-B13, which added Change Gap Limit
+# and Max Fee Rate above Advanced. At B11 it was six.
+TO_NETWORK = ("ArrowDown",) * 8 + ("Enter", "Enter")
 
 # The selection screen opens on the current value, which is Testnet, and Mainnet
 # is the entry above it. Deliberately that way round: mainnet is the answer the

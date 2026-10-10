@@ -693,6 +693,16 @@ def main() -> int:
             for key in keys:
                 page.keyboard.press(key)
                 page.wait_for_timeout(560)
+            if instruction == "Take the picture":
+                # ShSi-B13 takes the shot only once five distinct preview frames
+                # are in, and drops a press that comes before then. A visitor who
+                # sees nothing happen presses again, and so does this. Six seconds
+                # apart, so a press that did land has long since shown its screen.
+                for _ in range(5):
+                    page.wait_for_timeout(6000)
+                    if log.seen(r"display\(\) enter: " + screen + r"\b", since):
+                        break
+                    page.keyboard.press("Enter")
             log.wait(r"display\(\) enter: " + screen + r"\b", 120,
                      instruction, since)
             check(f"{instruction}: the firmware reaches {screen}", True)

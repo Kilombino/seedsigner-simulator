@@ -1762,8 +1762,11 @@
               return t.beat(900).then(function () { return value; });
             });
           }),
-          act("Take the picture", t.firmware === "doomsigner"
-              ? advance("ToolsImageEntropyFinalImageScreen", 6).perform : keys(["Enter"]), function () {
+          // Both card firmwares take the shot only once five distinct preview
+          // frames are in (ShSi-B13's pool, which DoomSigner already had), and a
+          // press that arrives before then is dropped, so keep pressing until
+          // the shot is taken.
+          act("Take the picture", advance("ToolsImageEntropyFinalImageScreen", 6).perform, function () {
             return t.until("display\\(\\) enter: ToolsImageEntropyFinalImageScreen\\b",
                            120000).then(function (value) {
               t.stopEntropy();

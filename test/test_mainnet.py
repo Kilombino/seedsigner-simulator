@@ -354,9 +354,20 @@ def main() -> int:
                              timeout=180)
         page.screenshot(path=harness.artifact("mainnet-psbt-overview.png"), full_page=True)
 
+        # ShSi-B13 reviews risks before the change, on a screen of its own. Here
+        # that is the fee: 10,000 of a 100,000 sat input is what its parser calls
+        # an unusually large share of the transaction (RiskWarning.HIGH_FEE),
+        # though not enough for its separate High Fee screen.
+        reviewing = log.mark()
         press(page, "Enter")            # through the overview
+        window = wait_screen(log, "WarningScreen", window, "the risk warning")
+        check("it stops on a risk warning first",
+              log.seen(r"View\.run enter: PSBTRiskWarningView", reviewing) is not None)
+        reviewing = log.mark()
+        press(page, "Enter")
         window = wait_screen(log, "WarningScreen", window, "the full-spend warning")
-        check("it notices the transaction leaves no change", True)
+        check("it notices the transaction leaves no change",
+              log.seen(r"View\.run enter: PSBTNoChangeWarningView", reviewing) is not None)
         press(page, "Enter")
         window = wait_screen(log, "PSBTMathScreen", window, "the amounts")
         press(page, "Enter")
