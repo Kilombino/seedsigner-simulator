@@ -78,16 +78,17 @@ def main():
                     ? new Promise(resolve => { window.releaseBuild = resolve; }) : Promise.resolve();
             }""")
             control(page, "Play")
-            page.get_by_role("button", name="Random noise", exact=True).click()
             wait(page, "t.stepText.textContent === 'Build the MuSig2 2 of 3 wallet'", "three card keys", 600)
             control(page, "Pause")
             page.evaluate("window.releaseBuild()")
             quiet(page, log)
-            page.evaluate("() => { WalletTutorial.current.pace = () => Promise.resolve(); }")
+            page.evaluate("() => { WalletTutorial.current.pace = () => Promise.resolve(); "
+                          "WalletTutorial.current.dwell = () => Promise.resolve(); }")
             control(page, "Back")
             wait(page, "t.paused", "Back pauses")
             check("MuSig Back retains three exported keys at the safe home boundary", page.evaluate("WalletTutorial.current.state.keys.length") == 3 and log.last_screen() == "MainMenuScreen")
-            page.evaluate("() => { WalletTutorial.current.pace = () => Promise.resolve(); }")
+            page.evaluate("() => { WalletTutorial.current.pace = () => Promise.resolve(); "
+                          "WalletTutorial.current.dwell = () => Promise.resolve(); }")
             control(page, "Play")
             wait(page, "t.finished", "MuSig walkthrough completion", 600)
             state = page.evaluate("() => JSON.parse(JSON.stringify(WalletTutorial.current.state))")

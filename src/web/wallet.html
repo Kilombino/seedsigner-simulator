@@ -145,6 +145,10 @@
        device) or has its own way out (the wallet panel has Close). */
     body.paired footer { gap: .45rem; margin-top: 0; }
     body.paired footer > *:not(.running-row) { display: none; }
+    /* While a walkthrough plays, not even that: the run cannot change firmware
+       without starting over, and the two rows the switch takes on a phone were
+       the rows the wallet at the bottom of the panel was missing. */
+    body.paired.tut-running footer { display: none; }
     body.paired #wallet-open-slot { display: none; }
     /* One line, not the stacked column a narrow screen otherwise gets: two
        firmwares and a label fit across a phone, and the column was three rows

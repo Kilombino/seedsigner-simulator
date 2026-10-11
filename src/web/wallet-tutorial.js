@@ -57,8 +57,13 @@
   // 1,000 sat over roughly 150 virtual bytes. Bitsaga Signet is not busy and
   // nothing here is bidding for space; this is simply above the relay minimum.
   var FEE = 1000n;
+  // What the single sig walkthrough pays back to the faucet, and at what rate:
+  // the drawer's own, so the device shows the same kind of payment either way.
+  var PAYMENT = 100000n;
+  var FEE_RATE = 2;
 
   var NOT_REAL = "Test coins. Worth nothing.";
+  var WAIT_LINE = "Wait for a block, about 30 s";
 
   // How fast self driving goes.
   //
@@ -92,6 +97,13 @@
   // The device usually has it inside a frame, so this is entirely for the eye.
   var HOLD_UP = 1500;        // the code is up, and the line says it is scanning
   var HOLD_AFTER = 700;      // and it stays up after the device has taken it
+  // Measured on 2026-10-11 by logging every screen of a run: pages of the seed
+  // words and the review screens went past in half a second, and a code was on
+  // the phone for under one. Anything that shows for that long reads as a
+  // flicker rather than as a screen, so these are floors, not paces.
+  var MIN_SCREEN = 2800;     // any device screen, before a press takes it away
+  var QR_MIN = 3000;         // any code on the phone, in either direction
+  var VERDICT_MIN = 3000;    // any result line, before the next step clears it
 
   // The run, in the shape somebody can hold while they watch it. Fourteen steps
   // is an inventory of what has to happen; six phases is where you are. Each
@@ -116,7 +128,7 @@
       title: "Single sig",
       sub: "1 private key",
       firmwares: ["stock", "smartcard", "doomsigner"],
-      phases: ["Make a private key", "Back it up", "Public key to wallet", "Build the wallet",
+      phases: ["Make a private key", "Back it up", "Public key to wallet",
                "Get test coins", "Sign it", "Send it"],
       build: function (tutorial) { return createSteps(tutorial, singleSteps); },
     },
@@ -210,35 +222,70 @@
     ".tut-step{margin:.15rem 0 0;color:#d7dbe0;font-weight:600;font-size:1.05rem}",
     ".tut-do{margin:.6rem 0 0;padding:.5rem .7rem;border-left:2px solid #f7931a;",
     "background:#16181c;color:#d7dbe0}",
-    ".tut-do:empty{display:none}",
+    // Empty, it keeps its height: a line that came and went at every step
+    // and every transfer moved everything under it up and down with it.
+    ".tut-do:empty{visibility:hidden}",
+    ".tut-do:empty::before{content:\"\\a0\"}",
     ".tut-verdict{margin:.8rem 0 0;border:1px solid #2a2f36;border-radius:6px;",
     "padding:.5rem .7rem;overflow-wrap:anywhere}",
     ".tut-verdict:empty{display:none}",
     ".tut-verdict[data-state=good]{color:#f7931a;border-color:#f7931a;background:#16181c}",
     ".tut-verdict[data-state=bad]{color:#ef4444;border-color:#7f1d1d;background:#1b0f10}",
 
-    // The code, and nothing pretending to hold it. This was a drawn phone, with
-    // a notch and a shadow and the word COORDINATOR under it, which is a mockup
-    // of a device nobody has: the coordinator here is a web page, and the only
-    // real thing in that picture was the code itself. So the code is the
-    // picture. White tile, because that is what a camera needs to read one.
-    ".tut-swap{display:flex;flex-wrap:wrap;gap:1rem;margin:1rem 0 0;align-items:flex-start}",
-    ".tut[data-state=idle] .tut-swap{display:none}",
-    ".tut-phone{width:9.5rem;flex:none}",
-    ".tut-phone-screen{position:relative;background:#16181c;border:1px solid #2a2f36;",
-    "border-radius:8px;overflow:hidden;min-height:6.4rem}",
-    ".tut-phone-canvas{display:block;width:100%;background:#fff}",
+    // The wallet, drawn as a wallet app: a light app screen with its own bar,
+    // in a dark phone frame. It was a dark box holding a list of labels, which
+    // read as a debug panel, and it looked like every other box on the page.
+    // Light where everything around it is dark, the two halves of the ceremony
+    // look like the two different things they are: the device signs, the app
+    // holds the wallet. No notch and no brand: it is a page, not a phone model.
+    // The code a transfer holds up still fills the app screen, on white.
+    ".tut-swap{display:flex;justify-content:center;margin:1rem 0 0}",
+    ".tut[data-state=idle] .tut-swap,.tut-swap[hidden]{display:none}",
+    ".tut-phone{width:min(100%,20rem);flex:none;box-sizing:border-box;padding:6px;",
+    "background:#050607;border:1px solid #30353c;border-radius:22px;",
+    "box-shadow:0 12px 28px rgba(0,0,0,.5)}",
+    ".tut-appbar{display:flex;align-items:center;justify-content:space-between;",
+    "gap:.4rem;padding:.55rem .7rem .45rem;background:#fff;color:#14161a;",
+    "border-radius:16px 16px 0 0;font-size:.76rem}",
+    ".tut-appbar b{display:flex;align-items:center;gap:.35rem;font-weight:700;",
+    "white-space:nowrap}",
+    ".tut-appbar b::before{content:\"\";width:.85rem;height:.85rem;border-radius:50%;",
+    "background:#f7931a}",
+    ".tut-appbar i{font-style:normal;font-size:.58rem;font-weight:700;",
+    "letter-spacing:.05em;text-transform:uppercase;color:#8a4b00;",
+    "background:#ffecd1;border-radius:999px;padding:.12rem .45rem;white-space:nowrap}",
+    ".tut-phone-screen{position:relative;background:#f5f6f8;",
+    "border-radius:0 0 16px 16px;overflow:hidden;min-height:10.5rem}",
+    // A code at the size a phone shows one, centred, not stretched to the app.
+    ".tut-phone-canvas{display:block;height:9rem;width:auto;max-width:100%;",
+    "margin:.35rem auto .6rem;background:#fff}",
+    ".tut-phone .tut-flow{padding:.6rem .7rem 0;text-align:center}",
+    ".tut-phone .tut-flow:empty{display:none}",
+    ".tut-phone .tut-arrow{color:#b45d00;font-size:.72rem}",
+    ".tut-phone .tut-caption{margin:.1rem 0 0;color:#14161a;font-size:.82rem;font-weight:600}",
     ".tut-phone-canvas[hidden]{display:none}",
-    ".tut-phone-face{padding:.5rem .55rem;font-size:.74rem;line-height:1.45;color:#8b939e}",
-    ".tut-phone-face b{display:block;color:#d7dbe0;font-weight:600;font-size:.8rem}",
-    ".tut-phone-face span{display:block;overflow-wrap:anywhere;margin-top:.3rem}",
-    ".tut-summary{display:grid;grid-template-columns:max-content 1fr;gap:.2rem .6rem;",
-    "margin:.45rem 0 0;font-size:.72rem}",
-    ".tut-summary dt{color:#7c848f}",
-    ".tut-summary dd{margin:0;color:#d7dbe0;overflow-wrap:anywhere;",
-    "font-family:ui-monospace,SFMono-Regular,Menlo,monospace}",
+    ".tut-phone-face{padding:.85rem .8rem .9rem;color:#5b616b;font-size:.76rem;",
+    "line-height:1.4;text-align:center}",
+    ".tut-w-label{margin:0;font-size:.72rem;color:#7a808a}",
+    ".tut-w-big{margin:.1rem 0 0;font-size:1.35rem;font-weight:700;color:#14161a;",
+    "letter-spacing:-.01em;line-height:1.2}",
+    ".tut-w-big small{font-size:.75rem;font-weight:600;color:#5b616b}",
+    ".tut-w-status{margin:.15rem 0 0;font-size:.72rem;color:#7a808a}",
+    ".tut-w-status[data-tone=wait]{color:#b45d00}",
+    ".tut-w-status[data-tone=ok]{color:#15803d}",
+    ".tut-w-pay{margin:.7rem 0 0;padding:.5rem .55rem;background:#fff;",
+    "border:1px solid #e1e4e8;border-radius:10px;text-align:left}",
+    ".tut-w-pay b{display:block;color:#14161a;font-size:.8rem}",
+    ".tut-w-pay span{display:block;font-size:.7rem;color:#b45d00}",
+    ".tut-w-pay small{display:block;font-size:.7rem;color:#7a808a}",
+    ".tut-w-note{margin:.1rem 0 0;font-size:.66rem;color:#9aa0a8}",
+    ".tut-w-pay[data-tone=ok] span{color:#15803d}",
+    ".tut-w-row{display:flex;justify-content:space-between;gap:.4rem;margin:.65rem 0 0;",
+    "padding:.45rem 0 0;border-top:1px solid #e1e4e8;font-size:.7rem;text-align:left}",
+    ".tut-w-row span{color:#7a808a}",
+    ".tut-w-row b{color:#14161a;font-weight:600;font-size:.68rem;",
+    "font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere}",
 
-    ".tut-flow{flex:1 1 12rem;min-width:0}",
     ".tut-arrow{color:#f7931a;font-weight:600;font-size:.82rem;letter-spacing:.04em}",
     ".tut-arrow:empty{display:none}",
     ".tut-caption{margin:.25rem 0 0;font-size:.88rem}",
@@ -369,11 +416,11 @@
     // worth saying once on a screen with room for it, but it does not change
     // for the whole eight minutes, and here it is competing with the caption
     // that changes every few seconds.
-    ".tut-swap{margin:.7rem 0 0;gap:.7rem;flex-wrap:nowrap}",
-    ".tut-phone{width:8.5rem}",
-    // No floor on a phone: with nothing to hold up, the tile was a hundred
-    // pixels of empty box on the screen with the least to spare.
-    ".tut-phone-screen{min-height:0}",
+    ".tut-swap{margin:.7rem 0 0}",
+    // The width of the panel, so nothing in it wraps; the floor is the height
+    // a code takes, so the screen does not jump between the wallet and a code.
+    ".tut-phone{width:100%}",
+    ".tut-phone-screen{min-height:10.5rem}",
     ".tut-do{margin:.45rem 0 0}",
     "}",
   ].join("");
@@ -482,7 +529,20 @@
 
     var swap = element("div", "tut-swap");
     var phone = element("div", "tut-phone");
+    this.phone = phone;
+    // What makes it read as a wallet rather than as a box: an app's own bar,
+    // with its name and the one fact about these coins that never changes.
+    var appBar = element("div", "tut-appbar");
+    appBar.appendChild(element("b", null, "Wallet"));
+    appBar.appendChild(element("i", null, "Testnet"));
+    phone.appendChild(appBar);
     var phoneScreen = element("div", "tut-phone-screen");
+    var flow = element("div", "tut-flow");
+    this.arrow = element("p", "tut-arrow");
+    this.caption = element("p", "tut-caption");
+    flow.appendChild(this.arrow);
+    flow.appendChild(this.caption);
+    phoneScreen.appendChild(flow);
     this.canvas = element("canvas", "tut-phone-canvas");
     this.canvas.width = 640;
     this.canvas.height = 480;
@@ -491,14 +551,12 @@
     phoneScreen.appendChild(this.canvas);
     phoneScreen.appendChild(this.face);
     phone.appendChild(phoneScreen);
-
-    var flow = element("div", "tut-flow");
-    this.arrow = element("p", "tut-arrow");
-    this.caption = element("p", "tut-caption");
-    flow.appendChild(this.arrow);
-    flow.appendChild(this.caption);
     swap.appendChild(phone);
-    swap.appendChild(flow);
+    // Out of sight until the wallet first has something to do: for the first
+    // minute of a run it is the signer's turn, and an app waiting on nothing
+    // was one more box on the screen with the least room.
+    swap.hidden = true;
+    this.swap = swap;
 
     this.fold = element("details", "tut-fold");
     var summary = element("summary", null, "i");
@@ -554,6 +612,7 @@
     root.appendChild(this.chooser);
     if (this.id === "single") {
       var label = element("label", "tut-choice-note");
+      this.passphraseLabel = label;
       this.passphraseBox = element("input");
       this.passphraseBox.type = "checkbox";
       this.passphraseBox.id = "tutorial-passphrase";
@@ -563,7 +622,6 @@
       root.appendChild(label);
       this.passphraseBox.addEventListener("change", function () {
         self1.passphrase = self1.passphraseBox.checked;
-        if (self1.schedulePassphrase) self1.schedulePassphrase();
       });
     }
 
@@ -679,6 +737,8 @@
 
   Tutorial.prototype.log = function (message) {
     this.lines.push(message);
+    // When the device last put up a screen, which is what dwell() measures.
+    if (/display\(\) enter: /.test(message)) this.screenSince = Date.now();
   };
 
   Tutorial.prototype.currentScreen = function () {
@@ -747,10 +807,11 @@
    * Self driving only: in hands on the visitor sets the pace by pressing the
    * buttons, and waiting on top of that would only be in the way.
    */
-  Tutorial.prototype.pace = function (text, ceiling) {
+  Tutorial.prototype.pace = function (text, ceiling, floor) {
     if (this.mode !== "self" || !text) return Promise.resolve();
     var words = String(text).trim().split(/\s+/).length;
-    var wait = Math.min(ceiling || READ_MAX, READ_FLOOR + words * READ_PER_WORD);
+    var wait = Math.max(floor || 0,
+                        Math.min(ceiling || READ_MAX, READ_FLOOR + words * READ_PER_WORD));
     // Interruptible, which is the whole of why Pause looked like it was one
     // step behind: this is the longest thing between two actions, and a sleep
     // that cannot be cut short means the press it was counting down to happens
@@ -787,10 +848,37 @@
 
   // ------------------------------------------------------------ the device
 
-  Tutorial.prototype.press = function (names, gap) {
+  /**
+   * Leave whatever the device is showing up for at least MIN_SCREEN, or for
+   * longer if asked, before a press takes it away.
+   *
+   * Every press waits on this, so no screen of a run is seen for less than
+   * that: not a page of the seed words, not a review screen, not the screen a
+   * key sequence passes through on its way somewhere else. Self driving only;
+   * a visitor pressing the buttons sets their own pace. Not cut short by
+   * Pause, because it sits inside an action, and the gate between actions is
+   * where a run stops.
+   */
+  Tutorial.prototype.dwell = function (least) {
+    if (this.mode !== "self" || !this.screenSince) return Promise.resolve();
+    var self = this, generation = this.generation;
+    var need = Math.max(MIN_SCREEN, least || 0);
+    return new Promise(function (resolve, reject) {
+      (function tick() {
+        if (generation !== self.generation) return reject(CANCELLED);
+        if (Date.now() - self.screenSince >= need) return resolve();
+        setTimeout(tick, 60);
+      })();
+    });
+  };
+
+  Tutorial.prototype.press = function (names, gap, least) {
     var self = this, generation = this.generation;
     return names.reduce(function (chain, name) {
       return chain.then(function () {
+        self.check(generation);
+        return self.dwell(least);
+      }).then(function () {
         self.check(generation);
         self.sendKey(self.keymap[name]);
         return self.sleep(gap || PRESS_GAP);
@@ -866,8 +954,6 @@
         for (var i = 3; i < data.length; i += 4) data[i] = 255;
         self.painter.putImageData(frame, 0, 0);
       }
-      self.face.hidden = true;
-      self.canvas.hidden = false;
       setTimeout(paint, 140);
     })();
   };
@@ -917,59 +1003,78 @@
   }
 
   /**
-   * What the coordinator is holding, in the shape a wallet shows it.
+   * The wallet, drawn the way a wallet app draws its home screen: a balance
+   * and what it is doing, the address it receives at, and the payment in hand.
    *
-   * The tile said "Coordinator" over an empty box for the first three minutes,
-   * which is a label for a thing with nothing in it. This is the same box
-   * saying what a wallet would say: how many keys it has, where it receives,
-   * what it holds, what it spent. Empty is a real answer early on, and it says
-   * that too, rather than saying nothing.
+   * Drawn from the run's own state every time, rather than swapped for a
+   * message about the moment. Swapping is what made the tile flicker: the
+   * summary, then "Waiting for a block" over a raw txid, then "Confirmed" over
+   * a block number, then the summary again, all inside twenty seconds.
    */
   Tutorial.prototype.summary = function () {
-    var state = this.state || {};
-    if (this.id === "single") state = state.activeRound || {};
-    var keys = (state.keys || []).filter(Boolean).length;
-    var rows = [["Public keys", this.id === "single" ? (state.account ? "1 of 1" : "0 of 1") : keys + " of 3"]];
-    if (state.receive) rows.push(["Address", ends(state.receive.address)]);
-    if (state.funding) rows.push(["Coins in", ends(state.funding)]);
-    if (state.spend && state.spend.txid) rows.push(["Sent", ends(state.spend.txid)]);
-    else if (state.wallet) rows.push(["Policy", this.id === "single" ? "1 of 1" : "2 of 3"]);
+    var single = this.id === "single";
+    var state = (single ? (this.state || {}).activeRound : this.state) || {};
+    var face = this.face;
+    face.textContent = "";
 
-    this.face.textContent = "";
-    this.face.appendChild(element("b", null, "Demo wallet"));
-    var list = element("dl", "tut-summary");
-    rows.forEach(function (row) {
-      list.appendChild(element("dt", null, row[0]));
-      list.appendChild(element("dd", null, row[1]));
-    });
-    this.face.appendChild(list);
-    this.face.hidden = false;
+    var need = single ? 1 : 3;
+    var have = single ? (state.account ? 1 : 0) : (state.keys || []).filter(Boolean).length;
+    if (!state.receive && have < need) {
+      face.appendChild(element("p", "tut-w-label", "Public keys"));
+      face.appendChild(element("p", "tut-w-big", have + " of " + need));
+      face.appendChild(element("p", "tut-w-status", "Waiting for the signer"));
+    } else {
+      var sent = !!state.sent;
+      var balance = sent ? (single ? state.kept : state.amount)
+                         : (state.received !== undefined ? state.received : 0);
+      var status = !state.funding ? ["No coins yet", ""]
+        : !state.fundingConfirmed ? ["Incoming", "wait"]
+        : sent && !state.confirmed ? ["Sending", "wait"]
+        : ["Confirmed", "ok"];
+      var big = element("p", "tut-w-big");
+      big.appendChild(document.createTextNode(Number(balance).toLocaleString("en-US")));
+      big.appendChild(element("small", null, " sats"));
+      face.appendChild(big);
+      var line = element("p", "tut-w-status", status[0]);
+      if (status[1]) line.dataset.tone = status[1];
+      face.appendChild(line);
+      if (state.funding) face.appendChild(element("p", "tut-w-note", NOT_REAL));
+
+      if (state.psbt) {
+        var signatures = single ? (state.signed ? 1 : 0) : (state.signed || []).length;
+        var needed = single ? 1 : 2;
+        var pay = element("div", "tut-w-pay");
+        pay.appendChild(element("b", null, (single ? "Pay " : "Send ")
+          + sats(state.amount)));
+        pay.appendChild(element("small", null, "Fee: " + sats(single ? state.fee : FEE)));
+        pay.appendChild(element("span", null,
+          state.confirmed ? (single ? "Paid" : "Sent")
+          : sent ? "Sent, waiting for a block"
+          : signatures >= needed ? "Signed"
+          : single ? "Needs your signature"
+          : "Signatures " + signatures + " of " + needed));
+        if (state.confirmed) pay.dataset.tone = "ok";
+        face.appendChild(pay);
+      }
+
+      if (state.receive) {
+        var row = element("div", "tut-w-row");
+        row.appendChild(element("span", null, "Receive"));
+        row.appendChild(element("b", null, ends(state.receive.address)));
+        face.appendChild(row);
+      }
+      if (!single) {
+        var policy = element("div", "tut-w-row");
+        policy.appendChild(element("span", null, "Policy"));
+        policy.appendChild(element("b", null, "2 of 3"));
+        face.appendChild(policy);
+      }
+    }
+    face.hidden = false;
     this.canvas.hidden = true;
+    this.phone.dataset.view = "home";
+    this.swap.hidden = !this.walletOn;
     this.clearPhone();
-  };
-
-  /**
-   * A word and a line about what the wallet half is doing.
-   *
-   * Nothing to say means nothing shown. The tile used to be handed a title and
-   * an empty string, and drew the box anyway, so a visitor's first sight of this
-   * column was one word over blank space -- which reads as something that failed
-   * to load rather than as something waiting. An empty span is dropped for the
-   * same reason: there is no such thing as a line with nothing on it.
-   */
-  Tutorial.prototype.showFace = function (title, text) {
-    if (!title && !text) return this.hideFace();
-    this.face.textContent = "";
-    if (title) this.face.appendChild(element("b", null, title));
-    if (text) this.face.appendChild(element("span", null, text));
-    this.face.hidden = false;
-    this.canvas.hidden = true;
-    this.clearPhone();
-  };
-
-  Tutorial.prototype.hideFace = function () {
-    this.face.textContent = "";
-    this.face.hidden = true;
   };
 
   Tutorial.prototype.paintMatrix = function (matrix) {
@@ -987,6 +1092,7 @@
     }
     this.face.hidden = true;
     this.canvas.hidden = false;
+    this.phone.dataset.view = "qr";
   };
 
   /** What the phone's own camera would see: the device's screen. */
@@ -1000,11 +1106,14 @@
     this.painter.strokeRect(60, 20, 520, 440);
     this.face.hidden = true;
     this.canvas.hidden = false;
+    this.phone.dataset.view = "camera";
   };
 
   Tutorial.prototype.transfer = function (direction, caption) {
+    this.walletOn = true;
+    this.swap.hidden = false;
     this.arrow.textContent = direction === "in"
-      ? "Phone  →  device" : "Device  →  phone";
+      ? "Wallet  →  signer" : "Signer  →  wallet";
     this.caption.textContent = caption;
   };
 
@@ -1017,8 +1126,8 @@
    */
   Tutorial.prototype.scanning = function (direction) {
     this.arrow.textContent = direction === "in"
-      ? "Scanning the QR  ·  Phone  →  device"
-      : "Scanning the QR  ·  Device  →  phone";
+      ? "Scanning  ·  Wallet  →  signer"
+      : "Scanning  ·  Signer  →  wallet";
   };
 
   Tutorial.prototype.endTransfer = function () {
@@ -1070,13 +1179,12 @@
 
   Tutorial.prototype.togglePlay = function () {
     if (this.mode === "idle") {
-      // Asked every time, and not remembered anywhere. Turning a camera on is
-      // not a preference to be inferred from something somebody clicked once.
-      track("play", "asked");
-      if (this.qrSeeds) return this.start("self");
-      this.pending = "self";
-      this.chooser.hidden = false;
-      return;
+      // Play plays. The photo the signer makes its key from is random noise,
+      // which needs no camera and so no question: two choices before anything
+      // moved was too much in front of somebody new. The camera is offered to
+      // those who take the buttons themselves, below.
+      track("play", "self");
+      return this.start("self");
     }
     // Taking over is implicit: stepping, pausing and going back are all ways of
     // saying you will drive. Handing it back has to be one press, and this is
@@ -1269,6 +1377,10 @@
     // measuring; before that it is a progress bar for a thing not happening.
     this.phaseRow.hidden = idle;
     if (!idle) this.chooser.hidden = true;
+    // Chosen before Play, then out of the way: a box beside the controls for
+    // the whole run was one more thing to read on every screen.
+    if (this.passphraseLabel) this.passphraseLabel.hidden = !idle;
+    document.body.classList.toggle("tut-running", !idle);
     iconInto(this.playButton, this.paused ? ICONS.play : ICONS.pause,
              this.paused ? "Play" : "Pause");
     if (idle) {
@@ -1378,7 +1490,12 @@
           return self.gate();
         }).then(function () {
           context.check();
-          self.doText.textContent = action.instruct || "";
+          // An instruction can depend on where the device is, so that a step
+          // which turns out to have nothing to do says nothing. Text for a
+          // press that never happens was its own kind of flicker.
+          var instruct = typeof action.instruct === "function"
+            ? action.instruct(context) : action.instruct;
+          self.doText.textContent = instruct || "";
           if (self.mode !== "self") {
             self.waitingForHands = true;
             return null;
@@ -1386,7 +1503,7 @@
           // The instruction is up; leave time to read it before the device
           // moves. An action with nothing to say gets no wait, because what
           // it is waiting for is the thing to watch.
-          return self.pace(action.instruct).then(function () {
+          return self.pace(instruct).then(function () {
             // Asked twice on purpose: once before the beat and once after it,
             // so a Pause pressed while the instruction is being read stops the
             // run there rather than one action later.
@@ -1531,8 +1648,8 @@
       return name.charAt(0).toLowerCase() + name.slice(1);
     }
 
-    function keys(names, gap) {
-      return function () { return t.press(names, gap); };
+    function keys(names, gap, least) {
+      return function () { return t.press(names, gap, least); };
     }
 
     function screenIs(name, timeout) {
@@ -1550,7 +1667,10 @@
     function inserted(index) {
       return function () {
         return t.poll(60000, function () { return t.tray.inserted() === index; },
-                      index < 0 ? "the card to come out" : "the card to go in");
+                      index < 0 ? "the card to come out" : "the card to go in")
+          // A card moving is the one thing on screen while this line is up,
+          // and it moved in a frame: give it a beat to be seen.
+          .then(function () { return t.beat(1500); });
       };
     }
 
@@ -1573,7 +1693,9 @@
      */
     function homeAgain() {
       return act(
-        "Back to the home screen",
+        function () {
+          return t.currentScreen() === "MainMenuScreen" ? null : "Back to the home screen";
+        },
         function () {
           var tries = 0;
           function climb() {
@@ -1601,7 +1723,7 @@
      * next, and one stray press past the signing screen dismisses the signed QR
      * before anything can read it.
      */
-    function advance(target, tries, instruct) {
+    function advance(target, tries, instruct, least) {
       return act(
         instruct || "Press select until it moves on",
         function () {
@@ -1618,7 +1740,7 @@
                 return again();
               }
               previous = null;
-              return t.press(["Enter"]).then(again);
+              return t.press(["Enter"], null, least).then(again);
             });
           }
           return again();
@@ -1645,7 +1767,7 @@
 
     function forgetTheSeed(card) {
       return [
-        act("Now the device forgets it",
+        act("Now the signer forgets it",
             keys(["ArrowRight", "Enter"]), screenIs("ButtonListScreen")),
         act("The loaded seed", keys(["Enter"]), screenIs("SeedOptionsScreen")),
         act("Discard",
@@ -1664,15 +1786,17 @@
         t.transfer("in", caption);
         // The caption is read, then the code goes up. Painting both in the same
         // frame is what made the seed appear to load itself.
+        var shown = 0;
         return t.pace(caption).then(function () {
           t.paintMatrix(scope.QREncode.matrix(
             typeof payload === "function" ? payload(context) : payload));
           t.scanning("in");
+          shown = Date.now();
           return t.beat(HOLD_UP);
         }).then(function () {
           return until(context);
         }).then(function (value) {
-          return t.beat(HOLD_AFTER).then(function () {
+          return t.beat(Math.max(HOLD_AFTER, QR_MIN - (Date.now() - shown))).then(function () {
             t.endTransfer();
             return value;
           });
@@ -1689,9 +1813,11 @@
         // The caption first, as above. The frames then cycle for as long as the
         // device needs them, which is already visible; what was not was the
         // moment the phone put the first one up.
+        var shown = 0;
         return t.pace(caption).then(function () {
           var list = typeof frames === "function" ? frames(context) : frames;
           t.scanning("in");
+          shown = Date.now();
           var at = 0;
           (function cycle() {
             if (done || generation !== t.generation) return;
@@ -1701,8 +1827,8 @@
           })();
           return until(context);
         }).then(function (value) {
-          done = true;
-          return t.beat(HOLD_AFTER).then(function () {
+          return t.beat(Math.max(HOLD_AFTER, QR_MIN - (Date.now() - shown))).then(function () {
+            done = true;
             t.endTransfer();
             return value;
           });
@@ -1719,6 +1845,7 @@
       return act(null, null, function (context) {
         t.transfer("out", caption);
         t.scanning("out");
+        var shown = Date.now();
         var collector = null;
         return t.poll(timeout || 180000, function () {
           t.mirrorDevice();
@@ -1728,12 +1855,10 @@
             collector = collector || scope.URDecode.collector();
             try { collector.receive(text); } catch (error) { return false; }
             // Real sub-step progress: codes actually read, out of the number
-            // this transfer turned out to have.
-            if (collector.parts()) {
-              t.caption.textContent = caption + " Code " + collector.have()
-                                    + " of " + collector.parts() + ".";
-              t.subProgress(collector.have() / collector.parts());
-            }
+            // this transfer turned out to have. On the line, not in the caption:
+            // a count in words changed every tenth of a second and could not
+            // be read.
+            if (collector.parts()) t.subProgress(collector.have() / collector.parts());
             if (!collector.done()) return false;
             return handle(context, collector) || true;
           }
@@ -1741,7 +1866,7 @@
         }, "the QR on the device's screen").then(function (value) {
           // Read, and left up for a moment: the other direction deserves the
           // same beat, or the caption vanishes the instant the phone has it.
-          return t.beat(HOLD_AFTER).then(function () {
+          return t.beat(Math.max(HOLD_AFTER, QR_MIN - (Date.now() - shown))).then(function () {
             t.endTransfer();
             return value;
           });
@@ -1751,7 +1876,7 @@
 
     // -------------------------------------------------- a seed onto a card
 
-    function seedOntoCard(i) {
+    function seedOntoCard(i, wordHold, keepIn) {
       var seed = SEEDS[i];
       var card = "Card " + seed.card;
       var cachedPin = t.firmware === "doomsigner" && i > 0;
@@ -1798,8 +1923,8 @@
           act("12 words", keys(["Enter"]), screenIs("DireWarningScreen", 120000)),
           act("Keep them private",
               keys(["Enter"]), screenIs("SeedWordsScreen")),
-          act("The backup: 12 words",
-              keys(["Enter", "Enter", "Enter"]),
+          act("Write down the 12 words",
+              keys(["Enter", "Enter", "Enter"], null, wordHold),
               screenIs("SeedWordsBackupTestPromptScreen")),
           // Skip, not Verify: the check types all twelve words back in, which is
           // the right thing to do with a seed you are keeping and forty presses
@@ -1830,25 +1955,27 @@
           act(null, null, screenIs("LargeIconStatusScreen")),
           act("Saved on " + lowerFirst(card),
               keys(["Enter"]), screenIs("SeedOptionsScreen")),
-          act("Now the device forgets it",
+          act("Now the signer forgets it",
               discardKeys(),
               screenIs("WarningScreen")),
           act("Confirm",
               keys(["ArrowDown", "Enter"]), screenIs("MainMenuScreen")),
+        ].concat(keepIn ? [] : [
           act("Remove " + lowerFirst(card),
               function () { t.tray.eject(); }, inserted(-1)),
-        ],
+        ]),
         // Even a blank card cannot replay image capture from an arbitrary device screen.
         false);
     }
 
     // -------------------------------------------------- the key off a card
 
-    function seedOffCard(i, cachedPin) {
+    function seedOffCard(i, cachedPin, alreadyIn) {
       var card = "Card " + SEEDS[i].card;
-      return [
+      return (alreadyIn ? [] : [
         act("Insert " + lowerFirst(card),
             function () { t.tray.insert(i); }, inserted(i)),
+      ]).concat([
         act("Seeds",
             keys(["ArrowRight", "Enter"]), screenIs("ButtonListScreen")),
         act("From SeedKeeper",
@@ -1865,7 +1992,7 @@
         act("Pick private key " + SEEDS[i].card, keys(["Enter"]),
             logged("\\[card\\] " + card + " exporting secret", 240000)),
         act(null, null, screenIs("SeedFinalizeScreen", 240000)),
-      ];
+      ]);
     }
 
     function scanSeed(i) {
@@ -1984,7 +2111,7 @@
           // Deriving an address takes a fifth of a second and puts a sentence
           // up worth reading -- an address, an amount, a transaction id -- so
           // the step waits for a reader rather than for itself.
-          return t.pace(t.verdict.textContent || t.stepText.textContent, STEP_MAX);
+          return t.pace(t.verdict.textContent || t.stepText.textContent, STEP_MAX, VERDICT_MIN);
         });
       });
     }
@@ -2000,249 +2127,47 @@
   }
 
   function singleSteps(t, helpers) {
-      var keys = helpers.keys, screenIs = helpers.screenIs, logged = helpers.logged;
-      var settle = helpers.settle, homeAgain = helpers.homeAgain, advance = helpers.advance;
-      var handUp = helpers.handUp, handUpFrames = helpers.handUpFrames;
-      var readOff = helpers.readOff, coordinator = helpers.coordinator;
-      var state = t.state || (t.state = {});
-      var original = { passphrase: false };
-      state.rounds = [original];
-      state.activeRound = original;
-      var phases = t.phases;
-      var stock = t.firmware === "stock";
-      var decided = false;
-      var scheduled = false;
-      var pendingPassphrase = false;
-      var finalizing = false;
-      var steps = [];
+    var keys = helpers.keys, screenIs = helpers.screenIs, logged = helpers.logged;
+    var settle = helpers.settle, homeAgain = helpers.homeAgain, advance = helpers.advance;
+    var handUp = helpers.handUp, handUpFrames = helpers.handUpFrames;
+    var readOff = helpers.readOff, coordinator = helpers.coordinator;
+    var state = t.state || (t.state = {});
+    // One round. A passphrase is chosen before Play or not at all. Ticking it
+    // mid-run used to add a whole second round, six more phases and a SeedQR
+    // backup that the first round only made so it could reload the seed: the
+    // opposite of the simplest walk through single sig.
+    var round = { passphrase: !!t.passphrase };
+    state.rounds = [round];
+    state.activeRound = round;
+    var phases = t.phases;
+    var stock = t.firmware === "stock";
+    var steps = [];
+    if (t.passphrase) {
+      phases.splice(2, 0, "Add a passphrase");
+      t.updatePhases();
+    }
 
-      function down(count) {
-        return Array(count).fill("ArrowDown").concat(["Enter"]);
-      }
+    function down(count) {
+      return Array(count).fill("ArrowDown").concat(["Enter"]);
+    }
 
-      function passphraseStep(round, phase, reload) {
-        var actions = reload ? [
-          coordinator(function () {
-            state.activeRound = round;
-          }),
-          homeAgain(),
-          act("Seeds", keys(["ArrowRight", "Enter"]), screenIs("ButtonListScreen")),
-          act("The loaded seed", keys(["Enter"]), screenIs("SeedOptionsScreen")),
-          act("Discard", stock ? keys(down(4)) : helpers.discardKeys(), screenIs("WarningScreen")),
-          act("Confirm", keys(["ArrowDown", "Enter"]), screenIs("MainMenuScreen")),
-        ].concat(stock ? [
-          act("Scan", keys(["Enter"]), screenIs("ScanScreen")),
-          handUp("The backup again", function () { return state.seedqr; },
-                 screenIs("SeedFinalizeScreen")),
-        ] : helpers.seedOffCard(0, true)) : [];
-        return step(reload ? "Reload, add passphrase" : "Add a passphrase", phase,
-          actions.concat([
-            act("Type passphrase",
-                keys(["ArrowDown", "Enter"]), screenIs("SeedAddPassphraseScreen")),
-            act("Type abc, then save",
-                keys(["Enter", "ArrowRight", "Enter", "ArrowRight", "Enter", "3"]),
-                screenIs("SeedReviewPassphraseScreen")),
-            act("New fingerprint: a new wallet",
-                keys(stock ? ["ArrowDown", "Enter"] : ["Enter"]), screenIs("SeedOptionsScreen")),
-          ]), false);
-      }
-
-      // A round cannot be replayed after its seed has been replaced, or after broadcast.
-      function replay(round) {
-        return function () {
-          return state.activeRound === round && !round.sending && !round.claimPending
-            && t.currentScreen() === "MainMenuScreen";
-        };
-      }
-
-      function roundSteps(round, p) {
-        var exportActions = [
-          homeAgain(),
-          act("Seeds", keys(["ArrowRight", "Enter"]), screenIs("ButtonListScreen")),
-          act("The loaded seed", keys(["Enter"]), screenIs("SeedOptionsScreen")),
-        ];
-        return [
-          step("Show the public key", p[0], exportActions.concat([
-            act("Export Xpub", keys(["ArrowDown", "Enter"]), screenIs("ButtonListScreen")),
-            act("Single sig", keys(["Enter"]), screenIs("ButtonListScreen")),
-            act("Native Segwit", keys(["Enter"]), screenIs("ButtonListScreen")),
-            act("Animated QR", keys(["Enter"]), settle(1600)),
-            advance("QRDisplayScreen", 5, "Next, until the QR shows"),
-            readOff("Public key", function (context, value) {
-              return Promise.resolve(C.parseAccount(typeof value === "string" ? value : value.payload()))
-                .then(function (account) {
-                  context.check();
-                  round.account = account;
-                  t.detail(round.passphrase ? "passphrase account fingerprint" : "account fingerprint",
-                           account.fingerprint);
-                });
-            }),
-            act("Close the QR", function () {
-              return t.sleep(1600).then(keys(["Enter"]));
-            }, logged("display\\(\\) enter: (LargeIconStatusScreen|MainMenuScreen)\\b")),
-            act("Address check, if offered", function () {
-              if (t.currentScreen() === "LargeIconStatusScreen") return t.press(["Enter"]);
-            }, function () {
-              if (t.currentScreen() === "MainMenuScreen") return Promise.resolve();
-              return screenIs("ScanScreen")();
-            }),
-            act("Skip it (demo only)", function () {
-              if (t.currentScreen() === "ScanScreen") return t.press(["ArrowLeft"]);
-            }, function () {
-              return t.poll(120000, function () { return t.currentScreen() === "MainMenuScreen"; }, "the home screen");
-            }),
-          ]), replay(round)),
-          step("Make the wallet", p[1], [coordinator(function (context) {
-            round.wallet = round.wallet || C.singleSigWallet(round.account);
-            round.index = round.index === undefined ? 0 : round.index;
-            return C.deriveAddressSingle(round.wallet, 0, round.index).then(function (receive) {
-              context.check();
-              round.receive = receive;
-              t.detail("descriptor", round.wallet.descriptor);
-              t.detail("receive address", receive.address);
-              t.verdict.dataset.state = "good";
-              t.verdict.textContent = "Wallet ready. Address: " + receive.address;
-              t.summary();
-            });
-          })], replay(round)),
-          step("Ask for test coins", p[2], [
-            coordinator(function (context) {
-              if (round.funding) return;
-              // A pending payment must settle before Back can replay coordinator work.
-              if (!round.claim) {
-                round.claimPending = true;
-                t.reflect();
-                round.claim = Promise.resolve().then(function () {
-                  return C.network.claim(round.receive.address);
-                }).then(function (paid) {
-                  round.funding = paid.txid;
-                  round.claimPending = false;
-                  return paid;
-                }, function (error) {
-                  round.claim = null;
-                  round.claimPending = false;
-                  throw error;
-                });
-              }
-              return round.claim.then(function (paid) {
-                context.check();
-                t.reflect();
-                t.detail("faucet transaction", paid.txid);
-                t.verdict.dataset.state = "good";
-                t.verdict.textContent = (paid.amount_sat ? sats(paid.amount_sat) + " on the way. " : "On the way. ")
-                  + NOT_REAL;
-              }, function (error) {
-                context.check();
-                t.reflect();
-                throw error;
-              });
-            }),
-            coordinator(function () {
-              return waitForBlock(t, round.funding, "the faucet's payment", "Waiting for a block.");
-            }),
-          ], false),
-          step("Make a payment", p[3], [coordinator(function (context) {
-            if (round.psbt) return;
-            return C.network.proof(round.funding).then(function (proof) {
-              context.check();
-              return C.transactionOutputs(proof.tx);
-            }).then(function (outputs) {
-              context.check();
-              var script = C.hex(round.receive.scriptPubkey);
-              var ours = outputs.filter(function (out) { return out.script === script; })[0];
-              if (!ours) throw new Error("the faucet's transaction does not pay this wallet");
-              round.input = { txid: round.funding, vout: ours.index,
-                              value: BigInt(ours.value), source: round.receive };
-              return C.deriveAddressSingle(round.wallet, 1, round.index);
-            }).then(function (change) {
-              context.check();
-              round.change = change;
-              round.amount = round.input.value - FEE;
-              if (round.amount <= 0n) throw new Error("the faucet payment does not cover the fee");
-              round.psbt = C.buildPsbtSingle({ inputs: [round.input],
-                outputs: [{ value: round.amount, script: change.scriptPubkey }] });
-              round.frames = specterFrames(round.psbt);
-              t.detail("unsigned PSBT", round.psbt);
-              t.verdict.dataset.state = "good";
-              t.verdict.textContent = "Payment ready: " + sats(round.amount) + ". Fee: " + sats(FEE) + ".";
-            });
-          })], replay(round)),
-          step("Sign it", p[3], [
-            homeAgain(),
-            act("Seeds", keys(["ArrowRight", "Enter"]), screenIs("ButtonListScreen")),
-            act("The loaded seed", keys(["Enter"]), screenIs("SeedOptionsScreen")),
-            act("Scan transaction", keys(["Enter"]), screenIs("ScanScreen")),
-            handUpFrames("Payment to sign", function () { return round.frames; }, function () {
-              return t.poll(300000, function () {
-                var screen = t.currentScreen();
-                return screen && screen !== "ScanScreen";
-              }, "the device to take the transaction");
-            }),
-            advance("PSBTFinalizeScreen", 10, "Check the payment, screen by screen"),
-            act("Sign", keys(["Enter"]), screenIs("QRDisplayScreen", 240000)),
-            readOff("Signed payment", function (context, collector) {
-              round.signed = C.toBase64(collector.psbt());
-            }, 300000),
-            act("Close the QR", function () {
-              return t.sleep(1600).then(keys(["Enter"]));
-            }, screenIs("MainMenuScreen")),
-          ], replay(round)),
-          step("Send it", p[4], [
-            coordinator(function (context) {
-              round.sending = true;
-              if (round.sent) return;
-              return Promise.resolve(C.finaliseSingle(round.signed, [round.input])).then(function (raw) {
-                context.check();
-                round.spend = { hex: raw.hex || raw, txid: singleTxid(round.psbt) };
-                return round.broadcastResult || C.network.broadcast(round.spend.hex);
-              }).then(function (sent) {
-                round.broadcastResult = sent;
-                context.check();
-                if (sent.txid && sent.txid !== round.spend.txid) {
-                  throw new Error("the network gave the transaction a different id");
-                }
-                round.sent = sent;
-                t.detail("transaction id", round.spend.txid);
-              });
-            }),
-            coordinator(function () {
-              return waitForBlock(t, round.spend.txid, "the spend", "Waiting for the spend to be mined.");
-            }),
-          ], false),
-          step("Done", p[4], [coordinator(function () {
-            round.confirmed = true;
-            t.verdict.dataset.state = "good";
-            t.verdict.textContent = "Confirmed: " + round.spend.txid;
-            t.showFace("Confirmed", round.spend.txid);
-          })], false),
-        ];
-      }
-
-      t.schedulePassphrase = function () {
-        if (!t.passphrase || scheduled || !decided) return;
-        if (!finalizing && t.currentScreen() === "SeedFinalizeScreen") {
-          pendingPassphrase = true;
-          return;
-        }
-        scheduled = true;
-        var round = { passphrase: true };
-        state.rounds.push(round);
-        var extra = ["Passphrase: load", "Passphrase: public key", "Passphrase: wallet",
-                     "Passphrase: test coins", "Passphrase: sign", "Passphrase: send"];
-        Array.prototype.push.apply(t.phases, extra);
-        t.updatePhases();
-        t.setPhase(steps[t.at] && steps[t.at].phase);
-        var from = steps.length;
-        steps.push(passphraseStep(round, extra[0], true));
-        Array.prototype.push.apply(steps, roundSteps(round, extra.slice(1)));
-        if (t.finished) {
-          if (t.handsOffer) { t.handsOffer.remove(); t.handsOffer = null; }
-          t.paused = false;
-          t.run(from);
-        }
+    // Where the device is now, not where the log cursor has got to: these
+    // wait on a screen that may already be up.
+    function on(test, what) {
+      return function () {
+        return t.poll(240000, function () { return test(t.currentScreen() || ""); }, what);
       };
+    }
 
-      var seedStep = stock ? step("From a photo", phases[0], [
+    function replay() {
+      return state.activeRound === round && !round.sending && !round.claimPending
+        && t.currentScreen() === "MainMenuScreen";
+    }
+
+    // ------------------------------------------------ the private key, backed up
+
+    if (stock) {
+      steps.push(step("From a photo", phases[0], [
         act("Tools", keys(["ArrowDown", "Enter"]), screenIs("ButtonListScreen")),
         act("New seed, from a photo", keys(["Enter"]), function () {
           return screenIs("ToolsImageEntropyLivePreviewScreen")().then(function () {
@@ -2258,67 +2183,253 @@
         }),
         act("Accept", keys(["ArrowRight"]), screenIs("ButtonListScreen")),
         act("12 words", keys(["Enter"]), screenIs("DireWarningScreen")),
+      ], false));
+      steps.push(step("The 12 words", phases[1], [
         act("Keep them private", keys(["Enter"]), screenIs("SeedWordsScreen")),
-        act("The backup: 12 words", keys(["Enter", "Enter", "Enter"]), screenIs("SeedWordsBackupTestPromptScreen")),
-        act("Skip the check (demo only)", keys(down(stock ? 1 : 2)), screenIs("SeedFinalizeScreen")),
-      ], false) : step("Load it from card A", phases[1], helpers.seedOffCard(0, true), false);
-      if (!stock) {
-        var save = helpers.seedOntoCard(0);
-        save.phase = phases[0];
-        steps.push(save);
-      }
-      seedStep.actions.push(coordinator(function () {
-        decided = true;
-        if (t.passphrase) {
-          scheduled = true;
-          original.passphrase = true;
-          t.phases.splice(stock ? 1 : 2, 0, "Add a passphrase");
-          t.updatePhases();
-          steps.splice(stock ? 1 : 2, 1, passphraseStep(original, "Add a passphrase", false));
-        }
-      }));
-      steps.push(seedStep);
-      steps.push(step("Finish loading", stock ? phases[0] : phases[1], [
-        act("Done", function () {
-          if (pendingPassphrase || t.passphrase) return;
-          finalizing = true;
-          return t.press(["Enter"]);
-        }, function () {
-          // Decide at Done, not at seed generation: a paused pending seed can still take a passphrase.
-          return t.poll(120000, function () {
-            if (t.currentScreen() === "SeedOptionsScreen") {
-              finalizing = true;
-              return true;
-            }
-            if (!finalizing && (pendingPassphrase || t.passphrase)
-                && t.currentScreen() === "SeedFinalizeScreen") {
-              scheduled = true;
-              original.passphrase = true;
-              t.phases.splice(stock ? 1 : 2, 0, "Add a passphrase");
-              t.updatePhases();
-              steps.splice(t.at + 1, 0, passphraseStep(original, "Add a passphrase", false));
-              return true;
-            }
-            return false;
-          }, "Done or a pending passphrase");
-        }),
+        // Four words a page, and every page held long enough to copy.
+        act("Write down the 12 words", keys(["Enter", "Enter", "Enter"], null, 3500),
+            screenIs("SeedWordsBackupTestPromptScreen")),
+        act("Skip the check (demo only)", keys(down(1)), screenIs("SeedFinalizeScreen")),
       ], false));
-      if (stock) steps.push(step("As a SeedQR", "Back it up", [
-        act("Backup seed", keys(down(3)), screenIs("ButtonListScreen")),
-        act("Export SeedQR", keys(down(stock ? 1 : 2)), screenIs("SeedTranscribeSeedQRFormatScreen")),
-        act("Standard SeedQR", keys(["Enter"]), screenIs("DireWarningScreen")),
-        act("Keep it private", keys(["Enter"]), screenIs("SeedTranscribeSeedQRWholeQRScreen")),
-        readOff("Backup, for this demo only", function (context, text) {
-          if (typeof text !== "string" || !/^\d{48}$/.test(text)) throw new Error("expected a twelve-word Standard SeedQR");
-          state.seedqr = text;
-        }),
-        act("View the backup", keys(["Enter"]), screenIs("SeedTranscribeSeedQRZoomedInScreen")),
-        act("Continue", keys(["Enter"]), screenIs("SeedTranscribeSeedQRConfirmQRPromptScreen")),
-        act("Skip the check (demo only)", keys(["ArrowDown", "Enter"]), screenIs("SeedOptionsScreen")),
-      ], false));
-      Array.prototype.push.apply(steps, roundSteps(original, t.entry.phases.slice(2)));
-      return steps;
+    } else {
+      // Card A stays in the reader: out and straight back in was two lines and
+      // two card moves that showed nothing.
+      var save = helpers.seedOntoCard(0, 3500, true);
+      save.phase = phases[0];
+      steps.push(save);
+      steps.push(step("Load it from card A", phases[1], helpers.seedOffCard(0, true, true), false));
     }
+
+    // ------------------------------------------------ done, or a passphrase
+
+    if (t.passphrase) {
+      steps.push(step("Passphrase: abc", "Add a passphrase", [
+        act("BIP-39 Passphrase", keys(["ArrowDown", "Enter"]), screenIs("SeedAddPassphraseScreen")),
+        act("Type abc, then save",
+            keys(["Enter", "ArrowRight", "Enter", "ArrowRight", "Enter", "3"]),
+            screenIs("SeedReviewPassphraseScreen")),
+        act("New fingerprint: a new wallet",
+            keys(stock ? ["ArrowDown", "Enter"] : ["Enter"]), screenIs("SeedOptionsScreen")),
+      ], false));
+    } else {
+      steps[steps.length - 1].actions.push(
+        act("Done", keys(["Enter"]), screenIs("SeedOptionsScreen")));
+    }
+
+    // ------------------------------------------------ the public key
+
+    // Loading a seed leaves the device on its menu, which is where Export Xpub
+    // is. Only a replay from the home screen has to walk back to it.
+    function toSeedMenu() {
+      if (t.currentScreen() === "SeedOptionsScreen") return Promise.resolve();
+      var home = homeAgain();
+      return Promise.resolve(home.perform()).then(home.until)
+        .then(function () { return t.press(["ArrowRight", "Enter"]); })
+        .then(on(function (s) { return s === "ButtonListScreen"; }, "the seed list"))
+        .then(function () { return t.press(["Enter"]); });
+    }
+
+    steps.push(step("Show the public key", "Public key to wallet", [
+      act(function () {
+        return t.currentScreen() === "SeedOptionsScreen" ? null : "Seeds, then your private key";
+      }, toSeedMenu, on(function (s) { return s === "SeedOptionsScreen"; }, "the seed's menu")),
+      act("Export Xpub", keys(["ArrowDown", "Enter"]), screenIs("ButtonListScreen")),
+      // Single sig, Native Segwit, Animated QR: the top choice on each of three
+      // menus, each held long enough to see.
+      act("Pick the defaults", keys(["Enter", "Enter", "Enter"]), settle(1600)),
+      advance("QRDisplayScreen", 5, "Next, until the QR shows"),
+      // The wallet is built the moment the key is read, as a wallet app builds
+      // one, and before the code goes down: built after, the app screen came
+      // back without its address and grew it a moment later.
+      readOff("Public key", function (context, value) {
+        return Promise.resolve(C.parseAccount(typeof value === "string" ? value : value.payload()))
+          .then(function (account) {
+            context.check();
+            round.account = account;
+            t.detail(round.passphrase ? "passphrase account fingerprint" : "account fingerprint",
+                     account.fingerprint);
+            round.wallet = round.wallet || C.singleSigWallet(round.account);
+            round.index = round.index === undefined ? 0 : round.index;
+            return C.deriveAddressSingle(round.wallet, 0, round.index);
+          }).then(function (receive) {
+            context.check();
+            round.receive = receive;
+            t.detail("descriptor", round.wallet.descriptor);
+            t.detail("receive address", receive.address);
+          });
+      }),
+      coordinator(function () { t.summary(); }),
+      act("Close the QR", keys(["Enter"]),
+          logged("display\\(\\) enter: (LargeIconStatusScreen|MainMenuScreen)\\b")),
+    ], replay));
+
+    // The fork asks, after a single sig export, to check an address of the new
+    // wallet, and offers only Scan. Cancelling it was a scanner that opened and
+    // closed for nothing. Doing it is the lesson: the device confirms that the
+    // address the phone shows really is its own. Stock does not ask, and says
+    // nothing here.
+    function offered() { return t.currentScreen() === "LargeIconStatusScreen"; }
+    if (!stock) steps.push(step("Check the address", "Public key to wallet", [
+      act(function () { return offered() ? "Scan" : null; }, function () {
+        if (offered()) return t.press(["Enter"]);
+      }, on(function (s) { return s === "ScanScreen" || s === "MainMenuScreen"; },
+            "the device to open Scan")),
+      act(null, null, function (context) {
+        if (t.currentScreen() !== "ScanScreen") return Promise.resolve();
+        return handUp("Receive address", function () { return round.receive.address; },
+          on(function (s) { return s && s !== "ScanScreen"; },
+             "the device to check the address")).until(context);
+      }),
+      // ShieldSigner says "Wallet export successful" once the address matches.
+      act(function () {
+        return t.currentScreen() === "MainMenuScreen" ? null : "Address verified";
+      }, function () {
+        if (t.currentScreen() !== "MainMenuScreen") return t.press(["Enter"]);
+      }, on(function (s) { return s === "MainMenuScreen"; }, "the home screen")),
+    ], false));
+
+    // ------------------------------------------------ coins in
+
+    steps.push(step("From the faucet", "Get test coins", [
+      coordinator(function (context) {
+        if (round.funding) return;
+        // A pending payment must settle before Back can replay coordinator work.
+        if (!round.claim) {
+          round.claimPending = true;
+          t.reflect();
+          round.claim = Promise.resolve().then(function () {
+            return C.network.claim(round.receive.address);
+          }).then(function (paid) {
+            round.funding = paid.txid;
+            round.received = paid.amount_sat;
+            round.claimPending = false;
+            return paid;
+          }, function (error) {
+            round.claim = null;
+            round.claimPending = false;
+            throw error;
+          });
+        }
+        return round.claim.then(function (paid) {
+          context.check();
+          t.reflect();
+          t.detail("faucet transaction", paid.txid);
+          t.summary();
+        }, function (error) {
+          context.check();
+          t.reflect();
+          throw error;
+        });
+      }),
+      coordinator(function () {
+        return waitForBlock(t, round.funding, "the faucet's payment", "Waiting for a block.")
+          .then(function () { round.fundingConfirmed = true; t.summary(); });
+      }),
+    ], false));
+
+    // ------------------------------------------------ a payment, signed
+
+    steps.push(step("Pay " + Number(PAYMENT).toLocaleString("en-US") + " sats", "Sign it", [
+      coordinator(function (context) {
+        if (round.psbt) return;
+        return C.network.proof(round.funding).then(function (proof) {
+          context.check();
+          return C.transactionOutputs(proof.tx);
+        }).then(function (outputs) {
+          context.check();
+          var script = C.hex(round.receive.scriptPubkey);
+          var ours = outputs.filter(function (out) { return out.script === script; })[0];
+          if (!ours) throw new Error("the faucet's transaction does not pay this wallet");
+          // Paid back to the faucet, at the address its own change went to: a
+          // payment the device has to show as leaving, and test coins that go
+          // back where they came from. The change comes home marked as this
+          // wallet's own, so the device checks it rather than warning that the
+          // whole input is being spent.
+          // Only a plain segwit output: anything else is not an address to pay.
+          var back = outputs.filter(function (out) {
+            return out.script !== script && /^(0014|0020|5120)/.test(out.script);
+          })[0];
+          round.input = { txid: round.funding, vout: ours.index,
+                          value: BigInt(ours.value), source: round.receive };
+          round.payTo = back ? C.unhex(back.script) : null;
+          return Promise.all([C.deriveAddressSingle(round.wallet, 1, round.index),
+                              back ? null : C.deriveAddressSingle(round.wallet, 0, round.index + 1)]);
+        }).then(function (found) {
+          context.check();
+          round.change = found[0];
+          if (!round.payTo) round.payTo = found[1].scriptPubkey;
+          round.amount = PAYMENT;
+          round.psbt = C.buildPsbtSingle({ inputs: [round.input],
+            outputs: [{ value: PAYMENT, script: round.payTo }],
+            change: round.change, feeRate: FEE_RATE });
+          var outs = C.transactionOutputs(C.hex(unsignedTx(round.psbt)));
+          round.kept = outs.length > 1 ? BigInt(outs[1].value) : 0n;
+          round.fee = round.input.value - PAYMENT - round.kept;
+          round.frames = specterFrames(round.psbt);
+          t.detail("unsigned PSBT", round.psbt);
+          t.summary();
+        });
+      }),
+      homeAgain(),
+      act("Scan", keys(["Enter"]), screenIs("ScanScreen")),
+      handUpFrames("Payment to sign", function () { return round.frames; }, function () {
+        return t.poll(300000, function () {
+          var screen = t.currentScreen();
+          return screen && screen !== "ScanScreen";
+        }, "the device to take the transaction");
+      }),
+      // The device asks which seed signs, unless it already knows.
+      act(function () {
+        return t.currentScreen() === "ButtonListScreen" ? "Pick your private key" : null;
+      }, function () {
+        if (t.currentScreen() === "ButtonListScreen") return t.press(["Enter"]);
+      }, on(function (s) { return /^PSBT/.test(s); }, "the payment to open")),
+      advance("PSBTFinalizeScreen", 10, "Check the payment, screen by screen", 3500),
+      act("Sign", keys(["Enter"]), screenIs("QRDisplayScreen", 240000)),
+      readOff("Signed payment", function (context, collector) {
+        round.signed = C.toBase64(collector.psbt());
+      }, 300000),
+      act("Close the QR", keys(["Enter"]), screenIs("MainMenuScreen")),
+    ], replay));
+
+    // ------------------------------------------------ and sent
+
+    steps.push(step("To the network", "Send it", [
+      coordinator(function (context) {
+        round.sending = true;
+        if (round.sent) return;
+        return Promise.resolve(C.finaliseSingle(round.signed, [round.input])).then(function (raw) {
+          context.check();
+          round.spend = { hex: raw.hex || raw, txid: singleTxid(round.psbt) };
+          return round.broadcastResult || C.network.broadcast(round.spend.hex);
+        }).then(function (sent) {
+          round.broadcastResult = sent;
+          context.check();
+          if (sent.txid && sent.txid !== round.spend.txid) {
+            throw new Error("the network gave the transaction a different id");
+          }
+          round.sent = sent;
+          t.detail("transaction id", round.spend.txid);
+          t.summary();
+        });
+      }),
+      // Confirmed the moment its block lands, so the wallet never says
+      // "Sending" under a line that says it is done.
+      coordinator(function () {
+        return waitForBlock(t, round.spend.txid, "the spend", "Waiting for a block.")
+          .then(function () {
+            round.confirmed = true;
+            // Argued with loss: on a SeedSigner the words are the only copy;
+            // on a card they are the second one.
+            t.closing = stock ? "Lose the 12 words, lose the coins."
+                              : "Lose the card and the 12 words, lose the coins.";
+            t.doText.textContent = t.closing;
+            t.summary();
+          });
+      }),
+    ], false));
+    return steps;
+  }
 
   function musigSteps(t, h) {
     var C = scope.EmbitCoordinator;
@@ -2486,7 +2597,6 @@
       PHASES[2],
       [
         coordinator(function (context) {
-          t.showFace("Building the wallet", "3 public keys, 2 of 3");
           // A fresh address, the way a wallet hands out a fresh one every time
           // rather than reusing the first. It also keeps two visitors doing this
           // at once out of each other's way: the three test seeds are public and
@@ -2502,9 +2612,7 @@
             t.detail("receive address", receive.address + "  (receive number "
                      + context.state.index + ")");
             t.detail("witness script", C.hex(receive.witnessScript));
-            t.verdict.dataset.state = "good";
-            t.verdict.textContent = "Wallet ready. Address: " + receive.address;
-            t.showFace("2 of 3 wallet", receive.address);
+            t.summary();
           });
         }),
       ]));
@@ -2531,23 +2639,23 @@
       ]));
 
     steps.push(step(
-      "Ask for test coins",
+      "From the faucet",
       PHASES[3],
       [
         coordinator(function (context) {
-          t.showFace("Asking for test coins", context.state.receive.address);
           return C.network.claim(context.state.receive.address).then(function (paid) {
             context.state.funding = paid.txid;
+            context.state.received = paid.amount_sat;
             t.detail("faucet transaction", paid.txid);
-            t.verdict.dataset.state = "good";
-            t.verdict.textContent = (paid.amount_sat ? sats(paid.amount_sat) + " on the way. " : "On the way. ")
-                  + NOT_REAL;
-            t.showFace("Coins on the way", paid.txid);
+            t.summary();
           });
         }),
         coordinator(function (context) {
           return waitForBlock(t, context.state.funding, "the faucet's payment",
-                              "Waiting for a block.");
+                              "Waiting for a block.").then(function () {
+            context.state.fundingConfirmed = true;
+            t.summary();
+          });
         }),
       ]));
 
@@ -2557,7 +2665,6 @@
       [
         coordinator(function (context) {
           var state = context.state;
-          t.showFace("Making a payment", "Needs 2 signatures");
           return C.network.proof(state.funding).then(function (proof) {
             return C.transactionOutputs(proof.tx);
           }).then(function (outputs) {
@@ -2578,10 +2685,7 @@
             t.detail("spending", state.input.txid + ":" + state.input.vout);
             t.detail("paying", state.change.address);
             t.detail("unsigned PSBT", state.psbt);
-            t.verdict.dataset.state = "good";
-            t.verdict.textContent = "Payment ready: " + sats(state.amount)
-              + ". Fee: " + sats(FEE) + ".";
-            t.showFace("Payment to sign", state.frames.length + " QR codes");
+            t.summary();
           });
         }),
       ]));
@@ -2595,7 +2699,6 @@
       [
         coordinator(function (context) {
           var state = context.state;
-          t.showFace("Combining", "2 signatures");
           return Promise.all(state.signed.map(function (psbt) {
             return C.partialSignatures(psbt);
           })).then(function (found) {
@@ -2618,29 +2721,20 @@
             if (sent.txid && sent.txid !== state.spend.txid) {
               throw new Error("the network gave the transaction a different id");
             }
-            t.verdict.dataset.state = "good";
-            t.verdict.textContent = "Sent: " + state.spend.txid;
-            t.showFace("Sent", state.spend.txid);
+            state.sent = true;
+            t.summary();
           });
         }),
+        // Confirmed the moment its block lands, and the run ends here: the
+        // wallet never says "Sending" under a line that says it is done.
         coordinator(function (context) {
           return waitForBlock(t, context.state.spend.txid, "the spend",
-                              "Waiting for the spend to be mined.");
-        }),
-      ],
-      false));
-
-    steps.push(step(
-      "Done",
-      PHASES[5],
-      [
-        coordinator(function (context) {
-          t.verdict.dataset.state = "good";
-          t.verdict.textContent = "Confirmed: " + context.state.spend.txid;
-          t.showFace("Confirmed", context.state.spend.txid);
-          t.closing = "With real coins: 3 signers, in 3 places.";
-          t.doText.textContent = t.closing;
-          return Promise.resolve();
+                              "Waiting for the spend to be mined.").then(function () {
+            context.state.confirmed = true;
+            t.closing = "With real coins: 3 signers, in 3 places.";
+            t.doText.textContent = t.closing;
+            t.summary();
+          });
         }),
       ],
       false));
@@ -2658,7 +2752,11 @@
    * next block and starts again if that block did not carry the transaction.
    */
   function waitForBlock(t, txid, what, say) {
-    t.showFace("Waiting for a block", txid);
+    t.summary();
+    // The one stretch with nothing to press and nothing moving but a line, so
+    // it says what is happening and roughly how long: without it, twenty
+    // seconds of a still screen read as a demo that had stopped.
+    t.doText.textContent = WAIT_LINE;
     var deadline = Date.now() + 300000;
     var generation = t.generation;
     return new Promise(function (resolve, reject) {
@@ -2667,9 +2765,7 @@
         C.network.proof(txid).then(function (proof) {
           if (generation !== t.generation) return reject(CANCELLED);
           t.detail(what + " confirmed in block", String(proof.height), true);
-          t.verdict.dataset.state = "good";
-          t.verdict.textContent = "Confirmed in block " + proof.height + ". " + NOT_REAL;
-          t.showFace("Confirmed", "Block " + proof.height);
+          if (t.doText.textContent === WAIT_LINE) t.doText.textContent = "";
           resolve();
         }, function (error) {
           if (generation !== t.generation) return reject(CANCELLED);
@@ -2696,6 +2792,11 @@
    * does and what a 640 by 480 camera can actually read.
    */
   function singleTxid(psbt) {
+    return C.hex(scope.URDecode.sha256(scope.URDecode.sha256(unsignedTx(psbt))).reverse());
+  }
+
+  /** The unsigned transaction a PSBT carries in its global map. */
+  function unsignedTx(psbt) {
     var bytes = C.fromBase64(psbt), at = 5;
     function length() {
       var n = bytes[at++];
@@ -2716,9 +2817,7 @@
       var value = bytes.slice(at, at + valueLength);
       at += valueLength;
       if (value.length !== valueLength) throw new Error("truncated PSBT");
-      if (keyLength === 1 && key[0] === 0) {
-        return C.hex(scope.URDecode.sha256(scope.URDecode.sha256(value)).reverse());
-      }
+      if (keyLength === 1 && key[0] === 0) return value;
     }
     throw new Error("the PSBT does not carry an unsigned transaction");
   }
@@ -2786,9 +2885,11 @@
       // to press: somebody who chose this has already watched it once.
       // Reloaded into a run: it still asks what to photograph, because a reload
       // is not an answer. What the URL decides is which mode the answer starts.
+      // Taking the buttons yourself is the run where your own camera is worth
+      // the question, so that one still asks.
       if (options.mode) {
         tutorial.pending = options.mode === "hands" ? "hands" : "self";
-        if (tutorial.qrSeeds) tutorial.start(tutorial.pending);
+        if (tutorial.qrSeeds || tutorial.pending === "self") tutorial.start(tutorial.pending);
         else tutorial.chooser.hidden = false;
       }
       // The same decoder the wallet's own camera path uses, because the phone

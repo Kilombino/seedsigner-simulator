@@ -18,7 +18,12 @@ ORIGIN = API.rsplit("/api", 1)[0]
 PATH = "m/84'/1'/0'"
 TPUB = bytes.fromhex("043587cf")
 VALUE = 1000000
-FEE = 1000
+PAYMENT = 100000
+FEE_RATE = 2
+# The faucet's own change, output zero of every fabricated funding transaction,
+# which is where the walkthrough pays its 100,000 sats back to.
+FAUCET_CHANGE = reference.p2wpkh_script(reference.hash160(bytes.fromhex(
+    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798")))
 CURRENT = "window.WalletTutorial.current"
 
 
@@ -37,19 +42,11 @@ class OfflineChain:
         self.transactions = {}
         self.unexpected = []
         self.log = None
-        self.hold_first_claim = False
-        self.pending_claim = None
         context.route("**/*", self.block)
         serve_at(context, harness.PORT, ORIGIN)
         context.route(f"{API}/**", self.api)
         context.route("**/mt.js*", lambda route: route.fulfill(status=200, body=""))
         context.route("**/mt.php*", lambda route: route.fulfill(status=200, body=""))
-
-    def release_claim(self):
-        assert self.pending_claim is not None
-        route, body = self.pending_claim
-        self.pending_claim = None
-        route.fulfill(status=200, content_type="application/json", body=json.dumps(body))
 
     def block(self, route):
         self.unexpected.append(route.request.url)
@@ -70,15 +67,12 @@ class OfflineChain:
             output = script.address_to_scriptpubkey(address).data
             raw = reference.unsigned_transaction(
                 reference.sha256(f"offline tutorial funding {len(self.claims)}".encode()),
-                0, [(12345, b"\x6a"), (VALUE, output)])
+                0, [(12345, FAUCET_CHANGE), (VALUE, output)])
             txid = reference.double_sha256(raw)[::-1].hex()
             self.transactions[txid] = raw.hex()
             self.claims.append({"address": address, "txid": txid, "vout": 1,
                                 "value": VALUE, "script": output, "mark": mark})
-            body = {"ok": True, "txid": txid}
-            if self.hold_first_claim and len(self.claims) == 1:
-                self.pending_claim = (route, body)
-                return
+            body = {"ok": True, "txid": txid, "amount_sat": VALUE}
         elif url.path == "/api/broadcast" and request.method == "POST":
             raw = json.loads(request.post_data)["tx"]
             txid = Transaction.parse(bytes.fromhex(raw)).txid().hex()
@@ -154,36 +148,6 @@ def control(page, name):
     page.locator(f'#tutorial button[aria-label="{name}"]').click()
 
 
-def quiet(page, log):
-    wait(page, "t.paused && !t.performing", "the in-flight action to finish")
-    previous = None
-    stable = time.monotonic()
-    deadline = stable + 30
-    while time.monotonic() < deadline:
-        now = page.evaluate("() => { const t = " + CURRENT + "; return "
-                            "[t.at, t.atAction, t.fraction, t.currentScreen(), t.doText.textContent]; }")
-        if now != previous:
-            previous, stable = now, time.monotonic()
-        elif time.monotonic() - stable >= 2:
-            mark = log.mark()
-            page.wait_for_timeout(2000)
-            assert not log.seen(r"display\(\) enter:", mark), "Pause still drives firmware screens"
-            assert now == page.evaluate("() => { const t = " + CURRENT + "; return "
-                                       "[t.at, t.atAction, t.fraction, t.currentScreen(), t.doText.textContent]; }")
-            return now
-        page.wait_for_timeout(100)
-    raise AssertionError("Pause never settled")
-
-
-def step_until(page, predicate):
-    for _ in range(16):
-        if page.evaluate("() => { const t = " + CURRENT + "; return !!(" + predicate + "); }"):
-            return
-        control(page, "One step")
-        wait(page, "t.paused && !t.stepOnce && !t.performing", "One step to stop again")
-    raise AssertionError("One step did not reach " + predicate)
-
-
 def boot(context, chain, query, page=None, log=None):
     if page is None:
         page = context.new_page()
@@ -201,26 +165,30 @@ def boot(context, chain, query, page=None, log=None):
           == {"single": ["stock", "smartcard", "doomsigner"],
               "multi": ["smartcard", "doomsigner", "stock"],
               "musig": ["doomsigner"]})
-    page.evaluate("() => { const t = " + CURRENT + "; "
-                  "t.pace = () => Promise.resolve(); t.beat = () => Promise.resolve(); }")
+    page.evaluate("() => { const t = " + CURRENT + "; t.pace = () => Promise.resolve(); "
+                  "t.beat = () => Promise.resolve(); t.dwell = () => Promise.resolve(); }")
     return page, log
 
 
 def start(page):
     control(page, "Play")
-    page.get_by_role("button", name="Random noise", exact=True).click()
 
 
-def mnemonic_from_qr(seedqr):
-    from embit.wordlists.bip39 import WORDLIST
-
-    assert re.fullmatch(r"\d{48}", seedqr), "not a twelve-word optical Standard SeedQR"
-    indices = [int(seedqr[i:i + 4]) for i in range(0, 48, 4)]
-    assert all(index < 2048 for index in indices)
-    bits = "".join(f"{index:011b}" for index in indices)
-    entropy = int(bits[:128], 2).to_bytes(16, "big")
-    assert int(bits[128:], 2) == reference.sha256(entropy)[0] >> 4, "invalid BIP39 checksum"
-    return " ".join(WORDLIST[index] for index in indices)
+def observe_seed(context):
+    """Log the pending mnemonic at SeedFinalizeScreen, from a test-only copy of
+    the worker: the one independent source of the seed now that the walkthrough
+    no longer exports a SeedQR."""
+    def patch(route):
+        response = route.fetch(url=f"http://127.0.0.1:{harness.PORT}/wallet-worker.js")
+        source = response.text()
+        anchor = '    js_log(f"display() enter: {type(self).__name__}")'
+        assert source.count(anchor) == 1
+        source = source.replace(anchor, anchor + '\n'
+            '    if type(self).__name__ == "SeedFinalizeScreen":\n'
+            '        from seedsigner.controller import Controller\n'
+            '        js_log("test pending mnemonic: " + " ".join(Controller.get_instance().storage.get_pending_seed().mnemonic_list))')
+        route.fulfill(response=response, body=source)
+    context.route("**/wallet-worker.js*", patch)
 
 
 def ordered(log, screens, start=0, end=None):
@@ -272,7 +240,12 @@ def prove_round(label, mnemonic, round_, claim, broadcast, proofs):
           round_["input"]["txid"] == claim["txid"]
           and round_["input"]["vout"] == claim["vout"] == 1
           and int(round_["input"]["value"]) == VALUE)
-    outputs = [(VALUE - FEE, parsed.derive(index, branch_index=1).script_pubkey().data)]
+    # 100,000 sats back to the faucet's own change address, the rest home to
+    # this wallet's change address, less a fee at 2 sat/vB.
+    change = parsed.derive(index, branch_index=1).script_pubkey().data
+    fee = int(round_["fee"])
+    kept = VALUE - PAYMENT - fee
+    outputs = [(PAYMENT, FAUCET_CHANGE), (kept, change)]
     expected_tx = reference.unsigned_transaction(bytes.fromhex(claim["txid"]), 1, outputs)
     unsigned = PSBT.from_string(round_["psbt"])
     signed_tx, partials = reference.read_psbt(base64.b64decode(round_["signed"]))
@@ -281,6 +254,19 @@ def prove_round(label, mnemonic, round_, claim, broadcast, proofs):
     raw = bytes.fromhex(broadcast["hex"])
     tx = Transaction.parse(raw)
     expected_id = reference.double_sha256(expected_tx)[::-1].hex()
+    vsize = (len(expected_tx) * 3 + len(raw) + 3) // 4
+    check(f"{label}: the fee is 2 sat/vB of the transaction that was sent, the change the rest",
+          abs(fee - FEE_RATE * vsize) <= FEE_RATE and kept > 0
+          and int(round_["kept"]) == kept, f"fee {fee} for {vsize} vB")
+    # The derivation on the change is what lets the device recognise it as its
+    # own. Without it the device warns that the whole input is leaving.
+    hardened = 0x80000000
+    marked = [(public.sec(), path.fingerprint, list(path.derivation))
+              for public, path in unsigned.outputs[1].bip32_derivations.items()]
+    check(f"{label}: the change output says whose it is, the payment does not",
+          not unsigned.outputs[0].bip32_derivations
+          and marked == [(root.derive(f"{PATH}/1/{index}").public, root.fingerprint,
+                          [84 + hardened, 1 + hardened, hardened, 1, index])])
     check(f"{label}: captured POST contains the actual final transaction and independent txid",
           broadcast["hex"] == round_["spend"]["hex"]
           and broadcast["txid"] == round_["spend"]["txid"] == expected_id)
@@ -301,7 +287,7 @@ def prove_round(label, mnemonic, round_, claim, broadcast, proofs):
     check(f"{label}: independent BIP143/ECDSA verifies the actual low-S signature",
           s <= reference.N // 2 and reference.verify_signature(key, digest, r, s))
     changed = reference.bip143_sighash(bytes.fromhex(claim["txid"]), 1, script_code,
-                                     VALUE, [(VALUE - FEE - 1, outputs[0][1])])
+                                     VALUE, [(PAYMENT - 1, FAUCET_CHANGE), (kept, change)])
     check(f"{label}: verifier rejects a changed signature, amount and passphrase key",
           not reference.verify_signature(key, digest, r, s ^ 1)
           and not reference.verify_signature(key, changed, r, s)
@@ -313,142 +299,55 @@ def prove_round(label, mnemonic, round_, claim, broadcast, proofs):
           and any(item["txid"] == expected_id for item in proofs))
 
 
-def prove_run(page, log, chain, label, expected_phrases):
-    wait(page, "t.finished && t.state.rounds.every(r => r.confirmed)", "all rounds confirmed", 240)
+def screens(log, start=0, end=None):
+    """The screen names the firmware entered, in order."""
+    return [match.group(1) for match in
+            (re.search(r"display\(\) enter: (\w+)", line) for line in log.lines[start:end])
+            if match]
+
+
+def reviewed_without_warning(log, start=0, end=None):
+    """Every review screen, recipient and verified change, and no warning
+    between the overview and the screen that offers to sign."""
+    seen = screens(log, start, end)
+    if "PSBTOverviewScreen" not in seen or "PSBTFinalizeScreen" not in seen:
+        return False
+    review = seen[seen.index("PSBTOverviewScreen"):seen.index("PSBTFinalizeScreen") + 1]
+    return (review == ["PSBTOverviewScreen", "PSBTMathScreen", "PSBTAddressDetailsScreen",
+                       "PSBTChangeDetailsScreen", "PSBTFinalizeScreen"])
+
+
+def prove_run(page, log, chain, label, passphrase):
+    wait(page, "t.finished && t.state.rounds.every(r => r.confirmed)", "the run confirmed", 240)
     got = evidence(page)
     rounds = got["state"]["rounds"]
-    assert [r["passphrase"] for r in rounds] == expected_phrases
-    assert len(chain.claims) == len(chain.broadcasts) == len(rounds), "duplicate or missing network work"
-    mnemonic = mnemonic_from_qr(got["state"]["seedqr"])
-    check(f"{label}: firmware creates, backs up and exports the seed through real screens",
+    assert [r["passphrase"] for r in rounds] == [passphrase], "one round, passphrase as chosen"
+    assert len(chain.claims) == len(chain.broadcasts) == 1, "duplicate or missing network work"
+    mnemonic = log.wait(r"test pending mnemonic: ([a-z ]+)", 5, "observed mnemonic").group(1)
+    check(f"{label}: firmware creates the seed, shows its words and exports the key through real screens",
           ordered(log, ["ToolsImageEntropyLivePreviewScreen", "ToolsImageEntropyFinalImageScreen",
                         "SeedWordsScreen", "SeedFinalizeScreen", "SeedOptionsScreen",
-                        "SeedTranscribeSeedQRWholeQRScreen", "SeedExportXpubDetailsScreen",
-                        "QRDisplayScreen"]))
+                        "SeedExportXpubDetailsScreen", "QRDisplayScreen"]))
+    check(f"{label}: no SeedQR detour, and nothing kept for one",
+          not log.seen(r"display\(\) enter: SeedTranscribeSeedQR") and "seedqr" not in got["state"])
     first_scan = next((i for i, line in enumerate(log.lines)
                        if "display() enter: ScanScreen" in line), len(log.lines))
     check(f"{label}: initial seed is generated, not injected through Scan",
           ordered(log, ["ToolsImageEntropyLivePreviewScreen", "SeedFinalizeScreen"], end=first_scan))
-    for i, round_ in enumerate(rounds):
-        start_mark = 0 if i == 0 else chain.broadcasts[i - 1]["mark"]
-        check(f"{label} round {i + 1}: real firmware reviews and approves before broadcast",
-              ordered(log, ["ScanScreen", "PSBTOverviewScreen", "PSBTFinalizeScreen", "QRDisplayScreen"],
-                      start_mark, chain.broadcasts[i]["mark"]))
-        prove_round(f"{label} round {i + 1}", mnemonic, round_, chain.claims[i],
-                    chain.broadcasts[i], chain.proofs)
+    check(f"{label}: real firmware reviews recipient and verified change, with no warning, before broadcast",
+          ordered(log, ["ScanScreen", "PSBTOverviewScreen", "PSBTFinalizeScreen", "QRDisplayScreen"],
+                  0, chain.broadcasts[0]["mark"])
+          and reviewed_without_warning(log, 0, chain.broadcasts[0]["mark"]),
+          repr(screens(log, 0, chain.broadcasts[0]["mark"])[-12:]))
+    prove_round(label, mnemonic, rounds[0], chain.claims[0], chain.broadcasts[0], chain.proofs)
     phrase_returns = [line for line in log.lines
                       if "display() exit: SeedAddPassphraseScreen -> {'passphrase': 'abc'}" in line]
-    check(f"{label}: firmware keyboard returns abc exactly once per passphrase round",
-          len(phrase_returns) == sum(expected_phrases))
+    check(f"{label}: firmware keyboard returns abc exactly when a passphrase was chosen",
+          len(phrase_returns) == (1 if passphrase else 0))
     check(f"{label}: no firmware exception, page error or unhandled real endpoint",
           not log.seen(r"RAISED|PAGEERROR|Traceback|display\(\) enter: UnhandledException")
           and not chain.unexpected, repr(chain.unexpected))
     return got
-
-
-def late_passphrase(page, log, chain):
-    wait(page, "t.state && t.state.rounds[0].claimPending", "first faucet request")
-    deadline = time.monotonic() + 10
-    while chain.pending_claim is None and time.monotonic() < deadline:
-        page.wait_for_timeout(50)
-    assert chain.pending_claim is not None, "first claim response was not intercepted"
-    control(page, "Pause")
-    quiet(page, log)
-    pending = evidence(page)["state"]
-    check("Back is disabled while the real faucet request is held pending",
-          page.locator('#tutorial button[aria-label="Back"]').is_disabled()
-          and pending["rounds"][0]["claimPending"]
-          and not pending["rounds"][0].get("funding")
-          and len(chain.claims) == 1 and not chain.broadcasts)
-    assert page.locator('#tutorial button[aria-label="Back"]').is_disabled()
-    chain.release_claim()
-    wait(page, "!t.state.rounds[0].claimPending && t.state.rounds[0].funding",
-         "held faucet response to settle")
-    step_until(page, "t.state.rounds[0].psbt")
-    before = evidence(page)["state"]
-    assert before["rounds"][0]["passphrase"] is False
-    assert log.last_screen() == "MainMenuScreen"
-    check("unchecked: no passphrase keyboard before the original spend is prepared",
-          not log.seen(r"display\(\) enter: SeedAddPassphraseScreen"))
-    page.locator("#tutorial-passphrase").check()
-    scheduled = evidence(page)["state"]
-    check("late tick preserves the prepared original wallet and schedules one extra round",
-          len(scheduled["rounds"]) == 2 and scheduled["rounds"][0] == before["rounds"][0]
-          and scheduled["activeRound"] == scheduled["rounds"][0])
-    page.locator("#tutorial-passphrase").uncheck()
-    check("unticking does not destroy the original wallet or queued passphrase round",
-          evidence(page)["state"] == scheduled)
-    page.locator("#tutorial-passphrase").check()
-    check("ticking again does not duplicate the queued round",
-          evidence(page)["state"] == scheduled)
-    back = page.locator('#tutorial button[aria-label="Back"]')
-    assert back.is_enabled(), "Back should be safe at the prepared-spend home screen"
-    mark = log.mark()
-    back.click()
-    quiet(page, log)
-    check("Back lands paused without changing firmware, seed, account, UTXO or PSBT",
-          not log.seen(r"display\(\) enter:", mark)
-          and evidence(page)["state"] == scheduled
-          and page.locator('#tutorial button[aria-label="Play"]').is_visible())
-    control(page, "Play")
-    wait(page, "t.state.rounds[1].account", "passphrase account export")
-    control(page, "Pause")
-    quiet(page, log)
-    step_until(page, "t.state.rounds[1].psbt")
-    passphrase_state = evidence(page)["state"]
-    assert passphrase_state["rounds"][0]["confirmed"]
-    assert passphrase_state["activeRound"] == passphrase_state["rounds"][1]
-    assert log.last_screen() == "MainMenuScreen"
-    assert back.is_enabled(), "Back must work on the active passphrase round before signing"
-    mark = log.mark()
-    back.click()
-    quiet(page, log)
-    check("Back after passphrase wallet build preserves both rounds and active seed exactly",
-          evidence(page)["state"] == passphrase_state
-          and not log.seen(r"display\(\) enter:", mark)
-          and page.locator('#tutorial button[aria-label="Play"]').is_visible())
-    control(page, "Play")
-    got = prove_run(page, log, chain, "unchecked then late tick", [False, True])
-    first_id = chain.broadcasts[0]["txid"]
-    confirmed_at = next(item["mark"] for item in chain.proofs if item["txid"] == first_id)
-    check("late round only discards and reloads after original spend confirmation",
-          ordered(log, ["SeedOptionsScreen", "WarningScreen", "MainMenuScreen", "ScanScreen",
-                        "SeedFinalizeScreen", "SeedAddPassphraseScreen", "SeedReviewPassphraseScreen",
-                        "SeedOptionsScreen", "SeedExportXpubDetailsScreen"],
-                  confirmed_at, chain.claims[1]["mark"]))
-    a, b = got["state"]["rounds"]
-    check("same optical seed produces two independently proved wallets and spends",
-          a["account"]["tpub"] != b["account"]["tpub"]
-          and a["receive"]["address"] != b["receive"]["address"]
-          and a["spend"]["txid"] != b["spend"]["txid"])
-
-
-def pending_finalize(page, log):
-    log.wait(r"display\(\) enter: SeedWordsScreen\b", 90, "seed words before finalization")
-    control(page, "Pause")
-    quiet(page, log)
-    step_until(page, "t.currentScreen() === 'SeedFinalizeScreen'")
-    step_until(page, "t.steps[t.at].title === 'Finish loading'")
-    assert log.last_screen() == "SeedFinalizeScreen"
-    assert not log.seen(r"display\(\) enter: SeedOptionsScreen")
-    page.locator(".tut-fold.floating > summary").click()
-    page.locator(".tut-fold.floating").get_by_role("button", name="I will drive", exact=True).click()
-    wait(page, "t.mode === 'hands' && t.waitingForHands && t.doText.textContent === 'Done'",
-         "hands mode awaiting Done on pending seed")
-    mark = log.mark()
-    page.wait_for_timeout(1500)
-    assert log.last_screen() == "SeedFinalizeScreen"
-    assert not log.seen(r"display\(\) enter:", mark)
-    page.locator("#tutorial-passphrase").check()
-    wait(page, "t.waitingForHands && t.steps[t.at].title === 'Add a passphrase'",
-         "pending seed passphrase inserted in hands mode")
-    state = evidence(page)["state"]
-    check("pending-finalize tick inserts the passphrase before Done, not a second round",
-          len(state["rounds"]) == 1 and state["rounds"][0]["passphrase"]
-          and log.last_screen() == "SeedFinalizeScreen"
-          and not log.seen(r"display\(\) enter: SeedOptionsScreen", mark))
-    page.locator(".tut-fold.floating > summary").click()
-    page.locator(".tut-fold.floating").get_by_role("button", name="Let it drive", exact=True).click()
 
 
 def restart(page, log):
@@ -458,44 +357,31 @@ def restart(page, log):
     params = parse_qs(urlsplit(page.url).query)
     page.wait_for_function("window.WalletTutorial && window.WalletTutorial.current", timeout=60000)
     log.wait(r"display\(\) enter: MainMenuScreen\b", 180, "fresh firmware after restart", mark)
-    check("Begin again preserves single/stock/passphrase and asks for entropy again",
+    check("Begin again preserves single/stock/passphrase and plays again at once",
           all(params.get(key) == [value] for key, value in
               (("tutorial", "single"), ("firmware", "stock"), ("passphrase", "1"), ("mode", "play")))
           and page.locator("#tutorial-passphrase").is_checked()
-          and page.get_by_role("button", name="Random noise", exact=True).is_visible())
+          and not page.get_by_role("button", name="Random noise", exact=True).is_visible())
+    # It plays at once, so the evidence is a fresh run: nothing carried over.
     check("Begin again clears all previous seed, wallet and spend state",
-          page.evaluate("() => { const t = " + CURRENT + "; return "
-                        "!t.finished && !t.state && t.mode === 'idle'; }")
-          and log.last_screen() == "MainMenuScreen")
+          page.evaluate("() => { const t = " + CURRENT + "; "
+                        "const r = t.state && t.state.rounds && t.state.rounds[0]; return "
+                        "!t.finished && t.mode === 'self' && (!r || (!r.account && !r.funding)); }"))
 
 
-def card_run(browser, firmware, scenario):
+def card_run(browser, firmware):
     global SHOTS
-    # One scenario is enough to photograph: prechecked and late walk the same
-    # phases, and a second set of the same pictures is not evidence of anything.
-    SHOTS = PhaseShots(f"single-{firmware}") if scenario == "prechecked" else None
+    SHOTS = PhaseShots(f"single-{firmware}")
     context = browser.new_context(viewport={"width": 1000, "height": 1300},
                                   service_workers="block")
     chain = OfflineChain(context)
+    observe_seed(context)
     page = context.new_page()
     log = Log(page)
     chain.log = log
-
-    def observe_seed(route):
-        response = route.fetch(url=f"http://127.0.0.1:{harness.PORT}/wallet-worker.js")
-        source = response.text()
-        anchor = '    js_log(f"display() enter: {type(self).__name__}")'
-        assert source.count(anchor) == 1
-        source = source.replace(anchor, anchor + '\n'
-            '    if type(self).__name__ == "SeedFinalizeScreen":\n'
-            '        from seedsigner.controller import Controller\n'
-            '        js_log("test pending mnemonic: " + " ".join(Controller.get_instance().storage.get_pending_seed().mnemonic_list))')
-        route.fulfill(response=response, body=source)
-
-    context.route("**/wallet-worker.js*", observe_seed)
     try:
         page.goto(f"{ORIGIN}/wallet.html?tutorial=single&firmware={firmware}&debug=1&e2e=1"
-                  + ("&passphrase=1" if scenario == "prechecked" else ""))
+                  "&passphrase=1")
         if firmware == "doomsigner":
             log.wait(r"display\(\) enter: WarningScreen\b", 180, "DoomSigner build warning")
             page.wait_for_timeout(600)
@@ -503,8 +389,8 @@ def card_run(browser, firmware, scenario):
         log.wait(r"display\(\) enter: MainMenuScreen\b", 180, "card firmware boot")
         assert page.evaluate("window.__firmware") == firmware
         assert page.evaluate(CURRENT + ".firmware") == firmware
-        page.evaluate("() => { const t = " + CURRENT + "; "
-                      "t.pace = () => Promise.resolve(); t.beat = () => Promise.resolve(); }")
+        page.evaluate("() => { const t = " + CURRENT + "; t.pace = () => Promise.resolve(); "
+                      "t.beat = () => Promise.resolve(); t.dwell = () => Promise.resolve(); }")
         start(page)
         stored = log.wait(r"\[card\] Card A stored secret \d+, type 0x10 subtype 0x01, "
                           r"label '[^']*', 84 bytes", 180, "twelve-word seed saved on Card A")
@@ -516,31 +402,31 @@ def card_run(browser, firmware, scenario):
                              "SeedAddPassphraseScreen", "LargeIconStatusScreen"], end=stored_at)
         assert ordered(log, ["SeedOptionsScreen", "WarningScreen", "MainMenuScreen"],
                        stored_at, exported_at)
-        wait(page, "t.state.rounds[0].account", "card account export")
-        if scenario == "late":
-            page.locator("#tutorial-passphrase").check()
-            assert len(evidence(page)["state"]["rounds"]) == 2
-        wait(page, "t.finished && t.state.rounds.every(r => r.confirmed)", "card rounds confirmed", 300)
+        wait(page, "t.finished && t.state.rounds.every(r => r.confirmed)", "card run confirmed", 300)
         got = evidence(page)["state"]
         mnemonic = log.wait(r"test pending mnemonic: ([a-z ]+)", 5, "observed mnemonic input").group(1)
-        expected = [False, True] if scenario == "late" else [True]
-        assert [r["passphrase"] for r in got["rounds"]] == expected
-        assert len(chain.claims) == len(chain.broadcasts) == len(expected)
+        assert [r["passphrase"] for r in got["rounds"]] == [True]
+        assert len(chain.claims) == len(chain.broadcasts) == 1
         assert "seedqr" not in got
         assert not log.seen(r"display\(\) enter: SeedTranscribeSeedQRWholeQRScreen")
-        for i, round_ in enumerate(got["rounds"]):
-            prove_round(f"{firmware} {scenario} round {i + 1}", mnemonic, round_,
-                        chain.claims[i], chain.broadcasts[i], chain.proofs)
-            assert ordered(log, ["ScanScreen", "PSBTOverviewScreen", "PSBTFinalizeScreen", "QRDisplayScreen"],
-                           0 if i == 0 else chain.broadcasts[i - 1]["mark"], chain.broadcasts[i]["mark"])
-        if scenario == "late":
-            mark = chain.broadcasts[0]["mark"]
-            assert ordered(log, ["SeedOptionsScreen", "WarningScreen", "MainMenuScreen",
-                                 "SeedFinalizeScreen", "SeedAddPassphraseScreen", "SeedReviewPassphraseScreen",
-                                 "SeedOptionsScreen", "SeedExportXpubDetailsScreen"], mark, chain.claims[1]["mark"])
-            assert log.seen(r"\[card\] Card A exporting secret", mark)
-            assert not any("display() enter: ScanScreen" in line
-                           for line in log.lines[mark:exported_at])
+        prove_round(f"{firmware}", mnemonic, got["rounds"][0],
+                    chain.claims[0], chain.broadcasts[0], chain.proofs)
+        assert ordered(log, ["ScanScreen", "PSBTOverviewScreen", "PSBTFinalizeScreen", "QRDisplayScreen"],
+                       0, chain.broadcasts[0]["mark"])
+        check(f"{firmware}: the device reviews recipient and verified change, with no warning",
+              reviewed_without_warning(log, 0, chain.broadcasts[0]["mark"]),
+              repr(screens(log, 0, chain.broadcasts[0]["mark"])[-12:]))
+        # The fork asks to check an address after a single sig export. The
+        # walkthrough holds the wallet's receive address up and the device
+        # confirms it, instead of opening Scan and backing out of it.
+        after_export = screens(log, exported_at, chain.claims[0]["mark"])
+        if "LargeIconStatusScreen" in after_export:
+            asked = after_export.index("LargeIconStatusScreen")
+            check(f"{firmware}: the address the device asked about is scanned and confirmed",
+                  after_export[asked:asked + 2] == ["LargeIconStatusScreen", "ScanScreen"]
+                  and "LargeIconStatusScreen" in after_export[asked + 2:]
+                  and not {"WarningScreen", "ErrorScreen"} & set(after_export[asked:]),
+                  repr(after_export[asked:]))
         assert not chain.unexpected
         assert not log.seen(r"RAISED|PAGEERROR|Traceback|display\(\) enter: UnhandledException")
         check(f"{firmware}: seed discarded before card reload and account export",
@@ -565,14 +451,15 @@ def main():
     with sync_playwright() as p:
         browser = p.chromium.launch()
         for firmware in ("smartcard", "doomsigner"):
-            for scenario in ("prechecked", "late"):
-                card_run(browser, firmware, scenario)
-        for scenario in ("prechecked", "late", "early", "pending-finalize"):
+            card_run(browser, firmware)
+        # A passphrase is chosen before Play or not at all, so these are the two
+        # runs there are: with one, reached through the drawer, and without.
+        for scenario in ("prechecked", "plain"):
             SHOTS = PhaseShots("single-stock") if scenario == "prechecked" else None
             context = browser.new_context(viewport={"width": 1000, "height": 1300},
                                           service_workers="block")
             chain = OfflineChain(context)
-            chain.hold_first_claim = scenario == "late"
+            observe_seed(context)
             query = "tutorial=single" if scenario != "prechecked" else "firmware=stock"
             page = None
             try:
@@ -608,26 +495,15 @@ def main():
                       page.evaluate(CURRENT + ".firmware") == "stock"
                       and page.locator("#tutorial-passphrase").is_checked() == (scenario == "prechecked"))
                 start(page)
-                if scenario == "late":
-                    late_passphrase(page, log, chain)
-                else:
-                    if scenario == "early":
-                        log.wait(r"display\(\) enter: ToolsImageEntropyLivePreviewScreen\b", 90,
-                                 "early tick while seed generation is in progress")
-                        control(page, "Pause")
-                        quiet(page, log)
-                        assert not log.seen(r"display\(\) enter: SeedFinalizeScreen")
-                        page.locator("#tutorial-passphrase").check()
-                        control(page, "Play")
-                    if scenario == "pending-finalize":
-                        pending_finalize(page, log)
-                    prove_run(page, log, chain, scenario, [True])
-                    check(f"{scenario}: passphrase is inserted before backup/export without discard/reload",
+                check(f"{scenario}: the passphrase box is out of the way once the run starts",
+                      not page.locator("#tutorial-passphrase").is_visible())
+                prove_run(page, log, chain, scenario, scenario == "prechecked")
+                if scenario == "prechecked":
+                    check(f"{scenario}: the passphrase goes on before the key is exported",
                           ordered(log, ["SeedFinalizeScreen", "SeedAddPassphraseScreen",
-                                        "SeedReviewPassphraseScreen", "SeedTranscribeSeedQRWholeQRScreen",
+                                        "SeedReviewPassphraseScreen", "SeedOptionsScreen",
                                         "SeedExportXpubDetailsScreen"]))
-                    if scenario == "prechecked":
-                        restart(page, log)
+                    restart(page, log)
             except Exception:
                 if page and not page.is_closed():
                     with open(harness.artifact(f"tutorial-single-{scenario}-failure.log"), "w") as handle:

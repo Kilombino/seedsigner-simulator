@@ -339,7 +339,8 @@ def stock_qr(browser):
               == ["Load 3 private keys", "Public keys to wallet", "Build the wallet",
                   "Get test coins", "Sign with 2 of 3", "Send it"])
         page.evaluate("() => { const t = window.WalletTutorial.current; "
-                      "t.pace = () => Promise.resolve(); t.beat = () => Promise.resolve(); }")
+                      "t.pace = () => Promise.resolve(); t.beat = () => Promise.resolve(); "
+                      "t.dwell = () => Promise.resolve(); }")
         mark = log.mark()
         page.locator('#tutorial button[aria-label="Play"]').click()
         check("stock multisig Play does not show the entropy chooser",
@@ -503,7 +504,6 @@ def doomsigner_card(browser):
                 : Promise.resolve();
         }""")
         page.locator('#tutorial button[aria-label="Play"]').click()
-        page.get_by_role("button", name="Random noise", exact=True).click()
         stored = log.wait(
             r"\[card\] Card A stored secret (\d+), type 0x(\w+) subtype 0x(\w+), "
             r"label '([^']*)', (\d+) bytes, fingerprint ([0-9a-f]{8})",
@@ -527,7 +527,8 @@ def doomsigner_card(browser):
         check("Doomsigner card ceremony has no firmware or page exception",
               not log.seen(r"RAISED|PAGEERROR|Traceback|display\(\) enter: UnhandledException"))
         assert ordered(log, ["SeedOptionsScreen", "WarningScreen", "MainMenuScreen"], mark)
-        page.evaluate("() => { window.WalletTutorial.current.pace = () => Promise.resolve(); }")
+        page.evaluate("() => { window.WalletTutorial.current.pace = () => Promise.resolve(); "
+                      "window.WalletTutorial.current.dwell = () => Promise.resolve(); }")
         page.locator('#tutorial button[aria-label="Play"]').click()
         for card in "BC":
             stored = log.wait(
@@ -648,7 +649,8 @@ def main() -> int:
               and page.locator(".cardtray-card").count() == 3
               and page.evaluate("window.__firmware") == "smartcard")
         page.locator('#tutorial button[aria-label="Play"]').click()
-        page.get_by_role("button", name="Random noise", exact=True).click()
+        check("Play starts the run at once, with no camera question",
+              not page.get_by_role("button", name="Random noise", exact=True).is_visible())
         page.locator('#tutorial button[aria-label="Pause"]').click()
         page.wait_for_timeout(500)
         page.locator(".tut-fold.floating > summary").click()
@@ -677,7 +679,7 @@ def main() -> int:
             ("Accept", ["ArrowRight"], "ButtonListScreen"),
             ("12 words", ["Enter"], "DireWarningScreen"),
             ("Keep them private", ["Enter"], "SeedWordsScreen"),
-            ("The backup: 12 words", ["Enter"] * 3, "SeedWordsBackupTestPromptScreen"),
+            ("Write down the 12 words", ["Enter"] * 3, "SeedWordsBackupTestPromptScreen"),
             ("Skip the check (demo only)", ["ArrowDown", "ArrowDown", "Enter"],
              "SeedFinalizeScreen"),
             ("Done", ["Enter"], "SeedOptionsScreen"),
@@ -755,7 +757,6 @@ def main() -> int:
         print("\npacing, and the controls over it")
         page, log = boot(context, logs)
         page.locator('#tutorial button[aria-label="Play"]').click()
-        page.get_by_role("button", name="Random noise", exact=True).click()
 
         instruction, _ = next_instruction(page, "")
         gaps = []
@@ -817,7 +818,8 @@ def main() -> int:
         # the pace a visitor gets.
         print("\nfailure states")
         page.evaluate("() => { window.WalletTutorial.current.pace = "
-                      "() => Promise.resolve(); }")
+                      "() => Promise.resolve(); "
+                      "window.WalletTutorial.current.dwell = () => Promise.resolve(); }")
         broken = {"how": "empty"}
 
         def faucet(route):
@@ -852,8 +854,8 @@ def main() -> int:
                   for card in "ABC"))
         check_card_pins(log, "smartcard")
         check("the descriptor transfer is captioned, with a direction",
-              "Phone" in panel(page, ".tut-arrow")
-              and "device" in panel(page, ".tut-arrow"), panel(page, ".tut-arrow"))
+              "Wallet" in panel(page, ".tut-arrow")
+              and "signer" in panel(page, ".tut-arrow"), panel(page, ".tut-arrow"))
         check("and says what moved",
               panel(page, ".tut-caption") == "Descriptor",
               panel(page, ".tut-caption"))

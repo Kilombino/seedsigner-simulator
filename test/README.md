@@ -256,37 +256,33 @@ passphrase are public test inputs and nothing derived from them should hold valu
 
 **`test_tutorial_single.py`** (`tutorial_single` in `run.py`): the actual stock
 single-sig walkthrough, offline, from a newly generated image-entropy seed to a
-signed spend and simulated confirmation. Three fresh contexts cover a passphrase
-ticked on the walkthrough's panel before Play, an unchecked start with a late tick after
-the original spend is prepared, and an early runtime tick before seed creation
-finishes. The single tutorial must default to stock without an explicit firmware
-parameter; the registry must restrict single to stock and multisig to smartcard
-and Doomsigner. Picker visibility and selection are exercised in the real wallet
-drawer, not a separately mounted picker.
+signed spend and simulated confirmation. A passphrase is chosen before Play or
+not at all, so there are two stock runs: one reached through the real wallet
+drawer with the passphrase ticked on the walkthrough's panel, and one without.
+Both card firmwares run once each, with a passphrase. The box must be hidden once
+a run starts, and no SeedQR detour may appear. Begin again must boot fresh
+firmware, clear the old seed/wallet/spend, preserve single/stock/passphrase, and
+ask for the entropy source again.
 
-The late tick must preserve the original account, wallet, UTXO and PSBT, finish
-and confirm the original spend, then discard and optically reload the same seed
-before entering `abc` and completing a second round. Unticking must not destroy
-the queued round; ticking again must not duplicate it. Pause must stop firmware
-screen transitions, One step advances to the prepared spend, and Back at that
-safe home-screen boundary must preserve the existing evidence and resume to a
-successful finish without duplicate claims or broadcasts. Begin again must boot
-fresh firmware, clear the old seed/wallet/spend, preserve single/stock/passphrase,
-and ask for the entropy source again.
-
-The mnemonic comes only from the optically captured `state.seedqr`, with its
-BIP39 checksum checked independently. embit supplies the wordlist, not the
+The mnemonic is read from a test-only copy of the worker that logs the pending
+seed at SeedFinalizeScreen; the page never sees it. embit supplies the wordlist, not the
 expected keys: `mainnet_reference.py` derives the fingerprint and entire
 `m/84'/1'/0'` tpub with and without `abc`. The expected descriptor is constructed
 from that reference account; embit independently derives receive/change
 addresses, and reference-derived public-key hashes anchor their scripts too.
-Firmware logs must show image capture, seed finalization, SeedQR backup, account
-export, transaction review and approval, and the passphrase keyboard returning
-exactly `abc`. State labels alone cannot satisfy these checks.
+Firmware logs must show image capture, seed finalization, account export,
+transaction review and approval, and the passphrase keyboard returning exactly
+`abc` when, and only when, a passphrase was chosen. The review must show the
+recipient and the verified change with no warning between the overview and the
+signing screen: the change output carries its BIP32 derivation and the payment
+output does not, which the test checks in the PSBT itself. State labels alone
+cannot satisfy these checks.
 
 All API calls are intercepted. A fabricated faucet transaction pays the address
-actually claimed, using `embit.script.address_to_scriptpubkey`, at output one
-behind a decoy output. The test captures the actual broadcast POST hex, requires
+actually claimed, using `embit.script.address_to_scriptpubkey`, at output one,
+behind the faucet's own change at output zero. The walkthrough pays 100,000 sats
+back to that change address at 2 sat/vB, and the test checks the fee against the
+size of the transaction actually broadcast. The test captures the actual broadcast POST hex, requires
 the unsigned and signed optical PSBTs to contain the independently constructed
 transaction, and verifies the final witness against reference BIP143/ECDSA:
 correct derivation, SIGHASH_ALL and low-S. Changed signature, output amount and
@@ -295,7 +291,7 @@ are fabricated only for transactions the test knows; unknown API requests fail,
 and other external requests are blocked. Static files are served from the local
 test server at the API's origin, never from the public site.
 
-Only tutorial `pace` and `beat` reading delays are disabled. Keypress spacing,
+Only tutorial `pace`, `beat` and `dwell` reading delays are disabled. Keypress spacing,
 screen guards, device firmware, QR optics, seed generation and signing remain
 real. This checks the confirmation-handling path, not mining, chain validity or
 real funds. Runtime is intended to fit a roughly five-to-ten-minute suite step,
