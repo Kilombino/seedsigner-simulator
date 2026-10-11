@@ -785,23 +785,26 @@ def main() -> int:
         check("and the progress line keeps what has actually happened", bar > 0,
               f"{bar:.0f}px")
 
-        stepping = log.mark()
-        page.locator('#tutorial button[aria-label="One step"]').click()
-        stepped = log.wait(r"display\(\) enter: (\w+)", 120,
-                           "one action to reach the next firmware screen", stepping).group(1)
+        # Next step, pressed while paused: the rest of the step in hand is done,
+        # without the reading pauses, and the run waits at the start of the
+        # next one. It used to be one action, which looked like nothing at all.
+        was = panel(page, ".tut-step")
+        page.locator('#tutorial button[aria-label="Next step"]').click()
+        deadline = time.time() + 240
+        while time.time() < deadline and panel(page, ".tut-step") == was:
+            page.wait_for_timeout(250)
+        reached = panel(page, ".tut-step")
         page.locator('#tutorial button[aria-label="Play"]').wait_for(state="visible")
         page.wait_for_timeout(500)
-        step_bar = bar_width(page)
         stopped = log.mark()
         page.wait_for_timeout(8000)
-        check("Step takes exactly one action and stops again",
-              log.last_screen() == stepped
+        check("Next step finishes the step in hand and waits at the start of the next",
+              reached != was and panel(page, ".tut-step") == reached
               and log.seen(r"display\(\) enter:", stopped) is None
-              and panel(page, ".tut-do") == held,
-              f"{stepped}: {panel(page, '.tut-do')[:60]}")
-        check("and the progress line advances once",
-              step_bar > bar and abs(bar_width(page) - step_bar) < 1,
-              f"{bar:.0f}px -> {step_bar:.0f}px")
+              and panel(page, ".tut-do") == "",
+              f"{was!r} -> {reached!r}: {panel(page, '.tut-do')[:60]!r}")
+        check("and the progress line starts the new step from nothing",
+              bar_width(page) == 0, f"{bar_width(page):.0f}px")
         check("and the button says it is paused again",
               page.locator('#tutorial button[aria-label="Play"]').is_visible())
 

@@ -499,7 +499,8 @@
     this.cursor = 0;
     this.mode = "idle";
     this.paused = true;
-    this.stepOnce = false;
+    this.skipTo = null;              // a Next step press in flight: the step it is going to
+    this.skipThenPause = false;      // and whether to wait there
     this.generation = 0;
     this.details = [];
     this.build(options.container, options);
@@ -534,7 +535,7 @@
 
     this.playButton = this.control("Play", this.togglePlay.bind(this), ICONS.play);
     this.backButton = this.control("Back", this.stepBack.bind(this), ICONS.back);
-    this.stepButton = this.control("One step", this.stepOn.bind(this), ICONS.step);
+    this.stepButton = this.control("Next step", this.stepOn.bind(this), ICONS.step);
     this.againButton = this.control("Begin again", this.restart.bind(this), ICONS.again);
 
     // Where the run is, in phases. Marks rather than numbers: it is answering
@@ -865,7 +866,7 @@
    * buttons, and waiting on top of that would only be in the way.
    */
   Tutorial.prototype.pace = function (text, ceiling, floor) {
-    if (this.mode !== "self" || !text) return Promise.resolve();
+    if (this.mode !== "self" || !text || this.skipping()) return Promise.resolve();
     var words = String(text).trim().split(/\s+/).length;
     var wait = Math.max(floor || 0,
                         Math.min(ceiling || READ_MAX, READ_FLOOR + words * READ_PER_WORD));
@@ -879,7 +880,7 @@
     return new Promise(function (resolve, reject) {
       (function tick() {
         if (generation !== self.generation) return reject(CANCELLED);
-        if (self.paused || Date.now() - started >= wait) return resolve();
+        if (self.paused || self.skipping() || Date.now() - started >= wait) return resolve();
         setTimeout(tick, 60);
       })();
     });
@@ -890,8 +891,16 @@
    * Self driving only, for the same reason pace is.
    */
   Tutorial.prototype.beat = function (ms) {
-    if (this.mode !== "self") return Promise.resolve();
-    return this.sleep(ms);
+    if (this.mode !== "self" || this.skipping()) return Promise.resolve();
+    // Cut short by Next step, as pace and dwell are; nothing else ends it.
+    var self = this, generation = this.generation, started = Date.now();
+    return new Promise(function (resolve, reject) {
+      (function tick() {
+        if (generation !== self.generation) return reject(CANCELLED);
+        if (self.skipping() || Date.now() - started >= ms) return resolve();
+        setTimeout(tick, 60);
+      })();
+    });
   };
 
   /**
@@ -917,13 +926,13 @@
    * where a run stops.
    */
   Tutorial.prototype.dwell = function (least) {
-    if (this.mode !== "self" || !this.screenSince) return Promise.resolve();
+    if (this.mode !== "self" || !this.screenSince || this.skipping()) return Promise.resolve();
     var self = this, generation = this.generation;
     var need = Math.max(MIN_SCREEN, least || 0);
     return new Promise(function (resolve, reject) {
       (function tick() {
         if (generation !== self.generation) return reject(CANCELLED);
-        if (Date.now() - self.screenSince >= need) return resolve();
+        if (self.skipping() || Date.now() - self.screenSince >= need) return resolve();
         setTimeout(tick, 60);
       })();
     });
@@ -1255,7 +1264,7 @@
       track("play", "let it drive");
       this.mode = "self";
       this.paused = false;
-      this.stepOnce = false;
+      this.skipTo = null;
       this.reflect();
       return this.doItForThem();
     }
@@ -1263,19 +1272,10 @@
     // button now says.
     track("play", this.paused ? "resume" : "pause");
     this.paused = !this.paused;
-    this.stepOnce = false;               // Play means keep going, not one more
+    this.skipTo = null;                  // Play or Pause ends a Next step in flight
     this.reflect();
   };
 
-  /**
-   * One action, then stop again.
-   *
-   * The whole of the next thing the panel describes happens -- the keys are
-   * pressed and the evidence for them is waited for -- and then the run pauses
-   * itself. Nothing is ever left half pressed, because the pausing is done
-   * between actions and only there, which is the same place the Play button
-   * takes effect.
-   */
   /**
    * The action the run is sitting on, done from here rather than by the loop.
    *
@@ -1305,22 +1305,37 @@
     });
   };
 
+  /**
+   * Next step: the rest of the step in hand now, and then the next one.
+   *
+   * The device still does every action that is left, because what it holds at
+   * the end of a step is what the next one starts from; only the time left for
+   * reading goes (see skipping). The run then carries on as it was: playing if
+   * it was playing, waiting at the start of the next step if it was paused. It
+   * used to be one action and then a pause, which on a phone, with no tooltip,
+   * read as a button that did nothing (Rob, 2026-10-11). Pressed again on the
+   * way, it goes one step further.
+   *
+   * While the visitor is driving it means "do this one for me", which is the
+   * thing somebody stuck on a step actually wants.
+   */
   Tutorial.prototype.stepOn = function () {
     track("step", this.mode);
-    // One step means one step whoever is driving. While the visitor is driving
-    // it means "do this one for me", which is the thing somebody stuck on a
-    // step actually wants, and it was the one moment this control was dead.
-    //
-    // No stepOnce here, deliberately. That flag pauses the run once the action
-    // lands, which is right when the run was moving by itself and wrong here:
-    // a hands on run already stops at every action, so pausing it again stops
-    // the loop before it writes the next instruction, and the press looks like
-    // it did nothing.
     if (this.mode === "hands") return this.doItForThem();
-    this.stepOnce = true;
     if (this.mode === "idle") return this.start("self");
+    if (this.skipTo === null) {
+      this.skipThenPause = this.paused;
+      this.skipTo = (this.at || 0) + 1;
+    } else {
+      this.skipTo += 1;
+    }
     this.paused = false;
     this.reflect();
+  };
+
+  /** Inside a Next step press, before the step it is going to. */
+  Tutorial.prototype.skipping = function () {
+    return this.skipTo !== null && this.at < this.skipTo;
   };
 
   /**
@@ -1342,7 +1357,7 @@
     track("drive", "hands");
     this.mode = "hands";
     this.paused = false;
-    this.stepOnce = false;
+    this.skipTo = null;
     this.reflect();
   };
 
@@ -1402,7 +1417,7 @@
     // Landing paused: somebody who pressed this wants to watch the step rather
     // than have it start away from them again.
     this.paused = true;
-    this.stepOnce = false;
+    this.skipTo = null;
     this.generation++;               // let the wait in flight go
     this.cursor = this.lines.length;
     this.reflect();
@@ -1469,7 +1484,7 @@
     // was dead in the one mode where anybody gets stuck.
     this.stepButton.disabled = false;
     this.stepButton.title = this.mode === "hands"
-      ? "Do this step for me" : "One step, then wait";
+      ? "Do this step for me" : "Next step";
     this.handsButton.textContent = this.mode === "hands" ? "Let it drive" : "I will drive";
     this.handsButton.classList.toggle("on", this.mode === "hands");
     this.setProgress(this.fraction || 0);
@@ -1533,6 +1548,13 @@
       if (index >= steps.length) return Promise.resolve();
       var step = steps[index];
       self.at = index;
+      // A Next step press lands here: waiting, if the run was paused when it
+      // was pressed, so this step's title is read before anything moves.
+      if (self.skipTo !== null && index >= self.skipTo) {
+        if (self.skipThenPause) self.paused = true;
+        self.skipTo = null;
+        self.skipThenPause = false;
+      }
       self.stepSize = step.actions.length;
       self.stepText.textContent = step.title;
       self.setPhase(step.phase);
@@ -1606,11 +1628,6 @@
           context.check();
           self.fraction = (at + 1) / step.actions.length;
           self.setProgress(self.fraction);
-          if (self.stepOnce) {           // one action was all that was asked for
-            self.stepOnce = false;
-            self.paused = true;
-            self.reflect();
-          }
         });
       }, opening).then(function () {
         return runStep(index + 1, 0);
@@ -1620,6 +1637,7 @@
     return runStep(fromStep, fromAction || 0).then(function () {
       context.check();
       self.finished = true;
+      self.skipTo = null;
       // A closing line the last step left stays up. It is the one thing worth
       // reading once the run is over, and clearing it here had it on screen
       // for about a second.
@@ -1667,6 +1685,7 @@
 
   Tutorial.prototype.fail = function (error) {
     var self = this;
+    this.skipTo = null;
     this.stopEntropy();
     this.releaseCamera();
     this.setProgress(0);

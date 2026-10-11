@@ -84,6 +84,23 @@ def walkthrough(browser):
         page.evaluate("() => { const t = " + CURRENT + "; t.pace = () => Promise.resolve(); "
                       "t.beat = () => Promise.resolve(); t.dwell = () => Promise.resolve(); }")
         page.locator('#tutorial button[aria-label="Play"]').click()
+        # The controls under the device answer a tap. Pause stops the run, and
+        # Next step finishes the step in hand and waits at the start of the next
+        # one (Rob, 2026-10-11: "the next step button doesn't work").
+        page.wait_for_function("() => " + CURRENT + ".at >= 1", timeout=120000)
+        page.locator('#device-say button[aria-label="Pause"]').tap()
+        page.wait_for_function("() => { const t = " + CURRENT + "; return t.paused && !t.performing; }",
+                               timeout=120000)
+        was = page.evaluate("() => " + CURRENT + ".stepText.textContent")
+        page.locator('#device-say button[aria-label="Next step"]').tap()
+        page.wait_for_function("(was) => { const t = " + CURRENT + "; "
+                               "return t.stepText.textContent !== was && t.paused; }",
+                               arg=was, timeout=180000)
+        reached = page.evaluate("() => " + CURRENT + ".stepText.textContent")
+        check("single sig: a tap on Next step reaches the next step and waits there",
+              reached != was and page.locator('#device-say button[aria-label="Play"]').is_visible(),
+              f"{was!r} -> {reached!r}")
+        page.locator('#device-say button[aria-label="Play"]').tap()
         worst, state = {}, [None, False, ""]
         deadline = time.time() + 300
         while time.time() < deadline:
