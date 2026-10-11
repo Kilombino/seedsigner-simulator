@@ -988,8 +988,11 @@ def main(argv) -> int:
             # watching the screen when the QR lands on it. Nothing is pressed in
             # the panel to make it connect, which is the claim being tested.
             page.locator("#wallet-button").click()
+            # The way to Export Xpub is the second of the drawer's own steps, under
+            # "Do it yourself": read the drawer, not only its first path.
+            drawer = page.locator("#wallet").text_content() or ""
             check("opening the drawer puts the panel in its unconnected state",
-                  "Export Xpub" in panel(page, ".wal-path"), panel(page, ".wal-path"))
+                  "Export Xpub" in drawer, drawer[:120])
 
             reached = export_the_account(page, log)
             check("the device exports the account key as a static QR", reached,

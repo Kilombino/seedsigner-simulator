@@ -192,93 +192,110 @@
     // being the one that sits next to what it closes.
 
     // The panel itself, in the column the tutorial panel would have had.
-    ".wal{width:min(46rem,100%);box-sizing:border-box;background:#12151a;",
-    "border:1px solid #2a2f36;border-radius:10px;padding:1.1rem 1.25rem 1.35rem;",
-    "color:#b6bec8;text-align:left}",
+    // The wallet as a wallet app, the same one the walkthroughs show: a light
+    // app screen in a dark phone frame, with the app's own bar. It was a dark
+    // panel like every other panel on the page, and read as settings rather
+    // than as a wallet (Rob, 2026-10-11: "more visually distinctive and feel
+    // like a real wallet UI"). Phone width, because that is what a wallet is.
+    ".wal{width:min(26rem,100%);margin:0 auto;box-sizing:border-box;",
+    "background:#f5f6f8;border:6px solid #050607;border-radius:24px;padding:0;",
+    "color:#3d434b;text-align:left;overflow:hidden;",
+    "box-shadow:0 0 0 1px #30353c,0 12px 28px rgba(0,0,0,.5)}",
     ".wal:focus{outline:none}",
-    ".wal-head{display:flex;align-items:baseline;justify-content:space-between;gap:.9rem}",
-    ".wal h2{font-size:1rem;font-weight:600;color:#d7dbe0;margin:0}",
-    ".wal-note{margin:.35rem 0 0;font-size:.82rem;color:#7c848f}",
+    ".wal-head{display:flex;align-items:center;gap:.55rem;padding:.6rem .85rem;",
+    "background:#fff;border-bottom:1px solid #e6e8eb}",
+    ".wal h2{display:flex;align-items:center;gap:.4rem;font-size:.95rem;",
+    "font-weight:700;color:#14161a;margin:0;white-space:nowrap}",
+    ".wal h2::before{content:\"\";width:.95rem;height:.95rem;border-radius:50%;",
+    "background:#f7931a}",
+    ".wal-pill{margin-right:auto;font-size:.6rem;font-weight:700;letter-spacing:.05em;",
+    "text-transform:uppercase;color:#8a4b00;background:#ffecd1;border-radius:999px;",
+    "padding:.12rem .45rem;white-space:nowrap}",
+    ".wal-note{margin:.35rem 0 0;font-size:.8rem;color:#7a808a}",
+    ".wal>.wal-note{margin:.65rem 1rem 0}",
+    ".wal-body{padding:0 1rem 1.15rem}",
     // A letter, not an icon font: one glyph costs nothing and cannot fail to load.
     // The same circle as the inline i below, so a visitor learns it once. A
     // button brings its own padding and the header aligns on the baseline,
     // which between them made it sit low and off centre.
-    ".wal-about-open{width:1.35rem;height:1.35rem;padding:0;border-radius:50%;"
-      + "border:1px solid #3a4048;background:none;color:#9aa3ae;cursor:pointer;"
+    ".wal .wal-about-open{width:1.35rem;height:1.35rem;padding:0;border-radius:50%;"
+      + "border:1px solid #c9ced4;background:none;color:#5b616b;cursor:pointer;"
       + "display:grid;place-items:center;font:italic 600 .85rem/1 serif;"
       + "flex:0 0 auto;margin-left:auto;align-self:center}",
-    ".wal-about-open:hover{color:#f7931a;border-color:#f7931a}",
-    ".wal-about-open[aria-expanded=\"true\"]{color:#f7931a;border-color:#f7931a}",
-    ".wal-about{margin:.6rem 0 0;padding:.7rem .9rem;border:1px solid #262b31;"
-      + "border-radius:8px;font-size:.8rem;color:#9aa3ad;max-height:22rem;overflow:auto}",
-    ".wal-about h3{margin:.7rem 0 .25rem;font-size:.78rem;color:#f7931a}",
+    ".wal .wal-about-open:hover{color:#b45d00;border-color:#f7931a}",
+    ".wal .wal-about-open[aria-expanded=\"true\"]{color:#b45d00;border-color:#f7931a}",
+    ".wal-about{margin:.6rem 1rem 0;padding:.7rem .9rem;border:1px solid #e1e4e8;"
+      + "border-radius:10px;background:#fff;font-size:.8rem;color:#5b616b;"
+      + "max-height:22rem;overflow:auto}",
+    ".wal-about h3{margin:.7rem 0 .25rem;font-size:.78rem;color:#b45d00}",
     ".wal-about h3:first-child{margin-top:0}",
     ".wal-about ul{margin:0;padding-left:1.1rem}",
     ".wal-about li{margin:.15rem 0}",
-    ".wal-about a{color:#9fd0a0}",
+    ".wal-about a{color:#15803d}",
     // The status a BIP carries, so Draft is visible without being shouted.
-    ".wal-about em{font-style:normal;color:#6f7681;font-size:.72rem}",
+    ".wal-about em{font-style:normal;color:#9aa0a8;font-size:.72rem}",
     // Sparrow lists cosigners as a numbered column with the fingerprint beside
     // each, and that is the shape people recognise.
-    ".wal-cosigners{margin:.7rem 0 0;border:1px solid #262b31;border-radius:8px;"
-      + "overflow:hidden}",
+    ".wal-cosigners{margin:.7rem 0 0;border:1px solid #e1e4e8;border-radius:10px;"
+      + "overflow:hidden;background:#fff}",
     ".wal-cosigner{display:flex;align-items:center;gap:.6rem;padding:.5rem .7rem;"
-      + "border-top:1px solid #1c2026;font-size:.85rem}",
+      + "border-top:1px solid #eef0f2;font-size:.85rem;color:#14161a}",
     ".wal-cosigner:first-child{border-top:0}",
     ".wal-cosigner-n{width:1.3rem;height:1.3rem;border-radius:50%;display:grid;"
-      + "place-items:center;font-size:.72rem;border:1px solid #3a4048;color:#7c848f;"
+      + "place-items:center;font-size:.72rem;border:1px solid #c9ced4;color:#7a808a;"
       + "flex:0 0 auto}",
-    ".wal-cosigner[data-state=have] .wal-cosigner-n{border-color:#f7931a;color:#f7931a}",
+    ".wal-cosigner[data-state=have] .wal-cosigner-n{border-color:#f7931a;color:#b45d00}",
     ".wal-cosigner[data-state=wait]{opacity:.45}",
     ".wal-cosigner-name{flex:1 1 auto}",
     ".wal-cosigner-fp{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;"
-      + "font-size:.78rem;color:#7c848f}",
-    ".wal-policy{margin:.6rem 0 0;font-size:.78rem;color:#7c848f}",
+      + "font-size:.78rem;color:#7a808a}",
+    ".wal-policy{margin:.6rem 0 0;font-size:.78rem;color:#7a808a}",
     ".wal-actions button[disabled]{opacity:.4;cursor:not-allowed}",
 
-    ".wal button{font:inherit;font-size:.88rem;color:#8b939e;background:#1d2026;",
-    "border:1px solid #2a2e35;border-radius:5px;padding:.25rem .7rem;cursor:pointer}",
-    ".wal button:hover:not(:disabled){color:#d7dbe0;border-color:#3a3f47}",
+    ".wal button{font:inherit;font-size:.88rem;color:#14161a;background:#fff;",
+    "border:1px solid #d5d9de;border-radius:999px;padding:.35rem .95rem;cursor:pointer}",
+    ".wal button:hover:not(:disabled){border-color:#f7931a}",
     ".wal button:disabled{opacity:.4;cursor:default}",
     ".wal button:focus-visible{outline:2px solid #f7931a;outline-offset:2px}",
-    ".wal .primary{color:#f7931a;border-color:#f7931a;background:#16181c;",
-    "padding:.5rem 1.1rem;font-size:.95rem}",
-    ".wal .primary:hover:not(:disabled){background:#1c2026;color:#f7931a}",
+    ".wal .primary{color:#14161a;border-color:#f7931a;background:#f7931a;",
+    "font-weight:600;padding:.55rem 1.2rem;font-size:.95rem}",
+    ".wal .primary:hover:not(:disabled){background:#ffa32e;border-color:#ffa32e;color:#14161a}",
     ".wal-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin:1.1rem 0 0}",
     // The i, and what it holds. Out of the flow so opening it does not shove
     // the buttons under it around.
     ".wal-info{position:relative;font-size:.82rem}",
     ".wal-info>summary{list-style:none;cursor:pointer;width:1.35rem;height:1.35rem;",
-    "border-radius:50%;border:1px solid #3a4048;color:#9aa3ae;display:grid;",
+    "border-radius:50%;border:1px solid #c9ced4;color:#5b616b;display:grid;",
     "place-items:center;font:italic 600 .85rem/1 serif}",
     ".wal-info>summary::-webkit-details-marker{display:none}",
-    ".wal-info>summary:hover{color:#f7931a;border-color:#f7931a}",
-    ".wal-info[open]>summary{color:#f7931a;border-color:#f7931a}",
+    ".wal-info>summary:hover{color:#b45d00;border-color:#f7931a}",
+    ".wal-info[open]>summary{color:#b45d00;border-color:#f7931a}",
     ".wal-info>div{position:absolute;z-index:12;left:0;top:1.8rem;width:min(24rem,70vw);",
-    "background:#0d1014;border:1px solid #2a2f36;border-radius:8px;padding:.6rem .75rem;",
-    "color:#b6bec8;line-height:1.55;box-shadow:0 .8rem 1.6rem rgba(0,0,0,.55)}",
+    "background:#fff;border:1px solid #e1e4e8;border-radius:10px;padding:.6rem .75rem;",
+    "color:#3d434b;line-height:1.55;box-shadow:0 .8rem 1.6rem rgba(0,0,0,.18)}",
 
     // The balance. The one number worth a size of its own.
     // The address check the device asks for right after an export.
     ".wal-verify{margin:1.2rem 0 0;padding:.8rem .9rem;border:1px solid #f7931a;",
-    "border-radius:8px;background:#16181c}",
-    ".wal-verify-head{margin:0;font-weight:600;color:#f7931a}",
+    "border-radius:10px;background:#fff7ed}",
+    ".wal-verify-head{margin:0;font-weight:600;color:#b45d00}",
     // The result of a spend, not a heading for what follows it. Without the
     // gap it sat flush against "Receiving address" and the two orange lines
     // read as one block.
-    ".wal-sent{margin:.35rem 0 1.1rem;font-weight:600;color:#f7931a}",
-    ".wal-verify-say{margin:.45rem 0 0;font-size:.85rem;color:#9aa3ae}",
+    ".wal-sent{margin:.35rem 0 1.1rem;font-weight:600;color:#b45d00}",
+    ".wal-verify-say{margin:.45rem 0 0;font-size:.85rem;color:#5b616b}",
     ".wal-verify .wal-actions{margin:.7rem 0 0}",
-    ".wal-balance{margin:1.4rem 0 0;font-size:2rem;line-height:1.15;font-weight:600;",
-    "color:#d7dbe0;letter-spacing:-.01em}",
-    ".wal-balance span{font-size:1rem;font-weight:400;color:#7c848f;margin-left:.35rem}",
-    ".wal-pending{margin:.3rem 0 0;font-size:.85rem;color:#f7931a}",
+    ".wal-balance{margin:1.4rem 0 0;font-size:2rem;line-height:1.15;font-weight:700;",
+    "color:#14161a;letter-spacing:-.01em;text-align:center}",
+    ".wal-balance span{font-size:1rem;font-weight:600;color:#7a808a;margin-left:.35rem}",
+    ".wal-pending{margin:.3rem 0 0;font-size:.85rem;color:#b45d00;text-align:center}",
+    ".wal-centre{justify-content:center}",
     ".wal-pending:empty{display:none}",
 
     ".wal-say{margin:1rem 0 0}",
     ".wal-say:empty{display:none}",
     ".wal-path{display:block;margin:.35rem 0 0;padding:.55rem .75rem;",
-    "border-left:2px solid #f7931a;background:#16181c;color:#d7dbe0;",
+    "border-left:2px solid #f7931a;background:#fff;color:#14161a;",
     "overflow-wrap:anywhere}",
     // The numbers are the point, so they are the one thing in the list that is
     // not grey: this is a sequence, and it used to be three paragraphs that had
@@ -288,13 +305,13 @@
     // which was the first attempt and why the numbers did not appear at all --
     // flex items are not list items, and ::marker only exists on a list item.
     ".wal-diy{margin:.6rem 0 0}",
-    ".wal-diy>summary{cursor:pointer;color:#8b939e;font-size:.88rem}",
-    ".wal-diy>summary:hover,.wal-diy[open]>summary{color:#d7dbe0}",
+    ".wal-diy>summary{cursor:pointer;color:#5b616b;font-size:.88rem}",
+    ".wal-diy>summary:hover,.wal-diy[open]>summary{color:#14161a}",
     ".wal-howto{margin:.9rem 0 0;padding:0 0 0 1.5rem;list-style:decimal}",
     ".wal-howto li{margin:0 0 .85rem}",
     ".wal-howto li:last-child{margin-bottom:0}",
     ".wal-howto li::marker{color:#f7931a;font-weight:600}",
-    ".wal-bad{margin:1rem 0 0;border:1px solid #7f1d1d;background:#1b0f10;color:#ef4444;",
+    ".wal-bad{margin:1rem 0 0;border:1px solid #f3c1c1;background:#fdeeee;color:#b91c1c;",
     "border-radius:6px;padding:.5rem .7rem;overflow-wrap:anywhere}",
     ".wal-bad:empty{display:none}",
 
@@ -302,35 +319,35 @@
     // chain has actually accepted. Nothing else; there is no UTXO view here and
     // no address book, because a wallet this small has no use for either.
     ".wal-list{list-style:none;padding:0;margin:1.2rem 0 0;",
-    "border-top:1px solid #2a2f36}",
+    "border-top:1px solid #e6e8eb}",
     ".wal-list li{display:flex;justify-content:space-between;gap:.9rem;",
-    "padding:.6rem 0;border-bottom:1px solid #2a2f36;font-size:.9rem}",
-    ".wal-list .what{color:#d7dbe0}",
-    ".wal-list .when{display:block;font-size:.8rem;color:#7c848f;margin-top:.15rem}",
-    ".wal-list .amount{white-space:nowrap;color:#d7dbe0}",
+    "padding:.6rem 0;border-bottom:1px solid #e6e8eb;font-size:.9rem}",
+    ".wal-list .what{color:#14161a;font-weight:600}",
+    ".wal-list .when{display:block;font-size:.78rem;color:#7a808a;margin-top:.15rem}",
+    ".wal-list .amount{white-space:nowrap;color:#14161a;font-weight:600}",
     ".wal-list li[data-state=pending] .amount,",
-    ".wal-list li[data-state=pending] .when{color:#f7931a}",
+    ".wal-list li[data-state=pending] .when{color:#b45d00}",
 
     // The steps of a send, which stay on screen because they are the lesson.
     ".wal-steps{list-style:none;padding:0;margin:1rem 0 0;font-size:.88rem}",
-    ".wal-steps li{padding:.25rem 0 .25rem .9rem;border-left:2px solid #2a2f36;color:#7c848f}",
-    ".wal-steps li[data-state=now]{border-color:#f7931a;color:#d7dbe0}",
-    ".wal-steps li[data-state=done]{border-color:#3a4048;color:#8b939e}",
+    ".wal-steps li{padding:.25rem 0 .25rem .9rem;border-left:2px solid #e1e4e8;color:#7a808a}",
+    ".wal-steps li[data-state=now]{border-color:#f7931a;color:#14161a}",
+    ".wal-steps li[data-state=done]{border-color:#c9ced4;color:#5b616b}",
 
     ".wal-field{margin:1rem 0 0}",
-    ".wal-field label{display:block;font-size:.82rem;color:#7c848f;margin-bottom:.25rem}",
+    ".wal-field label{display:block;font-size:.82rem;color:#7a808a;margin-bottom:.25rem}",
     ".wal-field input{width:100%;box-sizing:border-box;font:inherit;font-size:.9rem;",
-    "color:#d7dbe0;background:#0b0c0e;border:1px solid #2a2e35;border-radius:5px;",
+    "color:#14161a;background:#fff;border:1px solid #d5d9de;border-radius:8px;",
     "padding:.45rem .6rem}",
     ".wal-field input:focus{outline:2px solid #f7931a;outline-offset:1px}",
     ".wal-field button{margin-top:.45rem}",
     ".wal-mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85rem;",
-    "overflow-wrap:anywhere;color:#d7dbe0}",
+    "overflow-wrap:anywhere;color:#14161a}",
 
     // The code the device is pointed at. White, square and big enough that the
     // decoder reading it is doing the same job it would do through a lens.
     ".wal-qr{display:block;width:min(15rem,100%);margin:1rem auto 0;background:#fff;",
-    "border-radius:6px}",
+    "border-radius:8px;border:1px solid #e1e4e8}",
     ".wal-qr[hidden]{display:none}",
 
     // Collapsed and open are two elements, not one that changes shape: a strip
@@ -351,7 +368,8 @@
     "}",
 
     "@media (max-width:30rem){",
-    ".wal{padding:.9rem .85rem 1.1rem}",
+    ".wal-body{padding:0 .85rem 1.1rem}",
+    ".wal>.wal-note{margin:.6rem .85rem 0}",
     ".wal-balance{font-size:1.7rem}",
     "}",
 
@@ -362,8 +380,9 @@
     // numbers, the address and the line saying what is happening keep their
     // size, because those are what somebody is actually here to read.
     "@media (max-width:61.99rem) and (orientation:portrait){",
-    ".wal{padding:.75rem .8rem .85rem}",
+    ".wal-body{padding:0 .8rem .85rem}",
     ".wal-note{margin:.25rem 0 0;font-size:.76rem}",
+    ".wal>.wal-note{margin:.5rem .8rem 0}",
     ".wal-howto{margin:.6rem 0 0}",
     ".wal-howto li{margin:0 0 .55rem}",
     ".wal-path{margin:.25rem 0 0;padding:.4rem .6rem}",
@@ -378,23 +397,23 @@
     ".wal-modes button{flex:1;border-radius:0;padding:.4rem .6rem}",
     ".wal-modes button:first-child{border-radius:5px 0 0 5px}",
     ".wal-modes button:last-child{border-radius:0 5px 5px 0;margin-left:-1px}",
-    ".wal-modes button[aria-pressed=true]{color:#f7931a;border-color:#f7931a;",
-    "background:#16181c;position:relative;z-index:1}",
+    ".wal-modes button[aria-pressed=true]{color:#b45d00;border-color:#f7931a;",
+    "background:#fff7ed;position:relative;z-index:1}",
 
     // Bring your own wallet: one box per direction, because two directions is
     // all an airgap is. Monospace and selectable, since every value here exists
     // to be carried somewhere else by hand.
-    ".wal-hand{margin:1.2rem 0 0;padding-top:1.1rem;border-top:1px solid #22262c}",
+    ".wal-hand{margin:1.2rem 0 0;padding-top:1.1rem;border-top:1px solid #e6e8eb}",
     ".wal-hand:first-of-type{margin-top:0;padding-top:0;border-top:none}",
-    ".wal-hand h3{margin:0;font-size:.92rem;font-weight:600;color:#d7dbe0}",
-    ".wal-hand>p{margin:.3rem 0 0;font-size:.82rem;color:#7c848f;line-height:1.5}",
+    ".wal-hand h3{margin:0;font-size:.92rem;font-weight:600;color:#14161a}",
+    ".wal-hand>p{margin:.3rem 0 0;font-size:.82rem;color:#7a808a;line-height:1.5}",
     ".wal-hand textarea{width:100%;box-sizing:border-box;margin:.65rem 0 0;",
     "min-height:5rem;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,",
-    "monospace;font-size:.76rem;line-height:1.55;color:#d7dbe0;background:#0d1014;",
-    "border:1px solid #2a2f36;border-radius:6px;padding:.5rem .6rem}",
+    "monospace;font-size:.76rem;line-height:1.55;color:#14161a;background:#fff;",
+    "border:1px solid #d5d9de;border-radius:8px;padding:.5rem .6rem}",
     ".wal-hand textarea:focus-visible{outline:2px solid #f7931a;outline-offset:1px}",
-    ".wal-hand textarea[readonly]{color:#b6bec8;background:#101317}",
-    ".wal-kind{margin:.55rem 0 0;font-size:.82rem;color:#f7931a}",
+    ".wal-hand textarea[readonly]{color:#3d434b;background:#f8f9fa}",
+    ".wal-kind{margin:.55rem 0 0;font-size:.82rem;color:#b45d00}",
     ".wal-kind:empty{display:none}",
   ].join("");
 
@@ -672,9 +691,12 @@
     this.root.setAttribute("aria-labelledby", "wal-title");
 
     var head = element("div", "wal-head");
-    var title = element("h2", null, "Simulator wallet");
+    // The same bar as the wallet in the walkthroughs, so the two read as one
+    // app: its name, and the one fact about these coins that never changes.
+    var title = element("h2", null, "Wallet");
     title.id = "wal-title";
     head.appendChild(title);
+    head.appendChild(element("span", "wal-pill", "Testnet"));
     this.aboutButton = element("button", "wal-about-open", "i");
     this.aboutButton.type = "button";
     this.aboutButton.title = "What this coordinator does";
@@ -2148,7 +2170,7 @@
       // Behind the i beside the button rather than above it: what the faucet
       // pays and what the coins are worth is worth having, and it is not worth
       // reading every time somebody wants more of them.
-      var actions = element("div", "wal-actions");
+      var actions = element("div", "wal-actions wal-centre");
       actions.appendChild(this.button("Get test bitcoin", true, function () { self.claim(); }));
       actions.appendChild(this.info(pays + NOT_REAL));
       this.body.appendChild(actions);
@@ -2172,7 +2194,7 @@
     });
     this.body.appendChild(list);
 
-    var row = element("div", "wal-actions");
+    var row = element("div", "wal-actions wal-centre");
     row.appendChild(this.button("Receive", false, function () {
       self.view = "receive";
       self.render();

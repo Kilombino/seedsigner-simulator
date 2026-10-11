@@ -351,11 +351,11 @@
     // rule is more specific than a bare class and would win.
     "#start-tutorial{margin:1rem 0 0}",
     "#start-tutorial .tut-offer{margin:0 0 .5rem;font-size:.76rem;letter-spacing:.06em;",
-    "text-transform:uppercase;color:#7c848f}",
+    "text-transform:uppercase;color:#7a808a}",
     "#start-tutorial .tut-start{display:flex;align-items:center;gap:.85rem;width:100%;",
     "box-sizing:border-box;margin:0 0 .5rem;padding:.7rem .9rem;text-align:left;",
-    "font:inherit;color:#d7dbe0;background:#16181c;border:1px solid #2a2f36;",
-    "border-radius:8px;cursor:pointer}",
+    "font:inherit;color:#14161a;background:#fff;border:1px solid #e1e4e8;",
+    "border-radius:12px;cursor:pointer}",
     "#start-tutorial .tut-start:hover{border-color:#f7931a}",
     "#start-tutorial .tut-start:focus-visible{outline:2px solid #f7931a;outline-offset:2px}",
     "#start-tutorial .tut-start svg{flex:none;width:1rem;height:1rem;padding:.6rem;",
@@ -363,7 +363,7 @@
     "stroke-width:1.5;stroke-linejoin:round}",
     "#start-tutorial .tut-start b{display:block;font-size:1rem;font-weight:600}",
     "#start-tutorial .tut-start small{display:block;margin:.15rem 0 0;font-size:.82rem;",
-    "color:#8b939e}",
+    "color:#5b616b}",
 
     // A page over the page, not a panel tucked under a corner of it, once there
     // is no room for a panel. It was a floating box at z-index 12, which is a
