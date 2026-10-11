@@ -701,11 +701,10 @@
      cards already know how to shrink; they just have to be told to. */
   #cardtray { max-width: 100%; }
   /* The one thing on this page that asks for anything, so it is last, after
-     everything the page has to say for itself, and it is one sentence with
-     three words of it clickable.
+     everything the page has to say for itself: four words, all of them the
+     link, on one line on any phone.
 
-     A line rather than a button on purpose: the page's voice is a statement of
-     what this is, and the offer is the end of that statement rather than an
+     A line rather than a button on purpose: it is the end of the page, not an
      interruption of it. What makes it the action in the footer is the orange
      and the underline, which nothing else down here has.
 
@@ -1098,15 +1097,15 @@
     </div>
   </div>
   <div id="cardtray"></div>
-  <!-- Last, and the only thing here asking for anything: one short line saying
-       what the page is, with the shop behind the words that ask. One line, so
-       a phone with the wallet open has no scroll (Rob, 2026-10-11).
+  <!-- Last, and the only thing here asking for anything: one short line, all
+       of it the way to the shop. One line, so a phone with the wallet open has
+       no scroll; the wording is Rob's pick (2026-10-11).
 
        It ships hidden and the script below shows it on bitsaga.be, so what is
        published and what is served are the same bytes, and a clone of this
        repository is not left advertising a shop its host does not run. -->
   <div id="getone" hidden>
-    <p>Simulation. <a id="getone-link" href="/shop/">Buy the real device &rarr;</a></p>
+    <p><a id="getone-link" href="/shop/">Buy the real device &rarr;</a></p>
   </div>
   </footer>
 
