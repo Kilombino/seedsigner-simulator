@@ -32,7 +32,7 @@ A subset, by substring on the step name -- the names are `leak_scan`, `cards`,
 `tray_layout`, `device`, `firmware`, `build_info`, `settings`, `scan_seedqr`, `scan_compact`,
 `scan_native`, `stock_scan_seedqr`, `stock_scan_compact`, `stock_scan_native`,
 `cards_browser`, `cards_seed`, `cards_seedkeeper`, `cards_descriptor`, `mainnet`,
-`tutorial`, `tutorial_single`:
+`tutorial`, `tutorial_single`, `phone_fit`:
 
     python3 test/run.py scan          # everything with "scan" in the name
     python3 test/run.py stock         # the three stock-firmware scans
@@ -253,6 +253,13 @@ check Unicode normalization, every keyboard layout, editing or discarding a
 passphrase, scanning one, loading one from a card, or signing with the resulting
 key. Nothing here makes a browser safe for real seeds; this mnemonic and
 passphrase are public test inputs and nothing derived from them should hold value.
+
+**`test_phone_fit.py`** (`phone_fit` in `run.py`): the page on a phone held
+upright, 402 by 650, fits the screen with nothing scrolling: the page at rest
+and the open wallet drawer on stock and on the smartcard fork, and every
+sampled moment of a fast stock single sig walkthrough, during which the
+controls must sit beside the step under the device. The shop line must be one
+line. Offline, through the same OfflineChain as the single sig test.
 
 **`test_tutorial_single.py`** (`tutorial_single` in `run.py`): the actual stock
 single-sig walkthrough, offline, from a newly generated image-entropy seed to a

@@ -2,6 +2,7 @@ import io
 import json
 import os
 import sys
+import time
 import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -9,7 +10,7 @@ import harness
 from harness import Log, check, report
 from playwright.sync_api import sync_playwright
 import test_tutorial_single
-from test_tutorial_single import (OfflineChain, ORIGIN, PhaseShots, wait, control, quiet,
+from test_tutorial_single import (CURRENT, OfflineChain, ORIGIN, PhaseShots, wait, control,
                                   load_embit)
 from musig_reference import check_artifact, check_published_vectors
 
@@ -28,6 +29,29 @@ TRACE_QR = """
   };
   if (!wrap()) { const t = setInterval(() => { if (wrap()) clearInterval(t); }, 50); }
 """
+
+
+# Moved here from test_tutorial_single.py, its only user since the single sig
+# test stopped pausing mid-run (2026-10-11).
+def quiet(page, log):
+    wait(page, "t.paused && !t.performing", "the in-flight action to finish")
+    previous = None
+    stable = time.monotonic()
+    deadline = stable + 30
+    while time.monotonic() < deadline:
+        now = page.evaluate("() => { const t = " + CURRENT + "; return "
+                            "[t.at, t.atAction, t.fraction, t.currentScreen(), t.doText.textContent]; }")
+        if now != previous:
+            previous, stable = now, time.monotonic()
+        elif time.monotonic() - stable >= 2:
+            mark = log.mark()
+            page.wait_for_timeout(2000)
+            assert not log.seen(r"display\(\) enter:", mark), "Pause still drives firmware screens"
+            assert now == page.evaluate("() => { const t = " + CURRENT + "; return "
+                                       "[t.at, t.atAction, t.fraction, t.currentScreen(), t.doText.textContent]; }")
+            return now
+        page.wait_for_timeout(100)
+    raise AssertionError("Pause never settled")
 
 
 def coordinator_zip():
@@ -105,7 +129,13 @@ def main():
             control(page, "Begin again")
             page.wait_for_load_state()
             page.wait_for_function("window.WalletTutorial && WalletTutorial.current && WalletTutorial.current.id === 'musig'", timeout=300000)
-            check("Begin again preserves MuSig/DoomSigner and clears session", page.evaluate("window.__firmware === 'doomsigner' && WalletTutorial.current.firmware === 'doomsigner' && !WalletTutorial.current.state"))
+            # Begin again plays again at once (since 2026-10-11), so the evidence of
+            # a clean start is a fresh run: no keys, funding or session carried over.
+            check("Begin again preserves MuSig/DoomSigner, plays again at once, and clears the session",
+                  page.evaluate("() => { const t = WalletTutorial.current, s = t.state; "
+                                "return window.__firmware === 'doomsigner' && t.firmware === 'doomsigner' "
+                                "&& t.mode === 'self' && !t.finished "
+                                "&& (!s || (!s.session && !s.funding && !(s.keys || []).some(Boolean))); }"))
         finally:
             with open(harness.artifact("tutorial-musig.log"), "w") as handle:
                 handle.write("\n".join(log.lines))

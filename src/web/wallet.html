@@ -138,28 +138,33 @@
        wallet has Close, the tutorial has its own controls -- and choosing a
        firmware mid-ceremony reloads the page anyway. */
     body.paired header { display: none; }
-    /* The footer stays for one thing: which firmware this is. It is a choice
-       about the device, it belongs under the device, and hiding the whole
-       footer to save a row took it out with the rest. Everything else in there
-       is either gone from this layout already (the tray came up under the
-       device) or has its own way out (the wallet panel has Close). */
+    /* The footer stays for which firmware this is, and the shop line below.
+       The firmware is a choice about the device, it belongs under the device,
+       and hiding the whole footer to save a row took it out with the rest.
+       Everything else in there is either gone from this layout already (the
+       tray came up under the device) or has its own way out (the wallet panel
+       has Close). */
     body.paired footer { gap: .45rem; margin-top: 0; }
-    body.paired footer > *:not(.running-row) { display: none; }
+    body.paired footer > *:not(.running-row):not(#getone) { display: none; }
+    /* And the one line about the real device, without the rule and the gap
+       that set it apart on the resting page: on this layout every row it
+       takes is a row the wallet above it scrolls for. #getone is an id, so the
+       hiding rule above never reached it anyway; it took four rows here. */
+    body.paired #getone { border-top: 0; padding-top: 0; margin-top: 0; }
     /* While a walkthrough plays, not even that: the run cannot change firmware
        without starting over, and the two rows the switch takes on a phone were
        the rows the wallet at the bottom of the panel was missing. */
     body.paired.tut-running footer { display: none; }
     body.paired #wallet-open-slot { display: none; }
-    /* One line, not the stacked column a narrow screen otherwise gets: two
-       firmwares and a label fit across a phone, and the column was three rows
-       tall on the layout that has none to spare. */
-    body.paired #firmware-switch { flex-direction: row; }
-    body.paired #firmware-switch .label { margin: 0 .5rem 0 0; }
-    body.paired #firmware-switch button { width: auto; padding: .25rem .55rem; margin: 0 0 0 -1px; }
-    body.paired #firmware-switch button:first-of-type {
-      margin-left: 0; border-radius: 5px 0 0 5px;
-    }
-    body.paired #firmware-switch button:last-of-type { border-radius: 0 5px 5px 0; }
+    /* DoomSigner's line about the side button, while the wallet is open: the
+       wallet is what is being read, and the line is back when it closes. And
+       the card tray while DOOM has the device, when the cards can do nothing.
+       Both so the screen holds everything without a scroll. */
+    body.paired #doom-hint { display: none; }
+    body.doom-on #cardtray { display: none; }
+    /* The switch is one row on any phone now; here it is a little lower still,
+       on the layout that has no row to spare. */
+    body.paired #firmware-switch button { padding: .25rem .4rem; }
     body.paired #stage { flex: 1 1 auto; min-height: 0; gap: .45rem; }
     body.paired #stage-device {
       position: static; flex: 0 0 auto; padding-bottom: 0; gap: .25rem;
@@ -629,16 +634,17 @@
   #firmware-switch button:focus-visible {
     outline: 2px solid #f7931a; outline-offset: 2px; position: relative; z-index: 2;
   }
-  /* Stacked on a phone. Four names and a label do not fit one line at 360px,
-     so they wrapped into a broken row. A column is four choices. Sized to the
-     widest of them so the edges line up, rather than each button being as
-     wide as its own word. */
+  /* One row on a phone, not a column. The column was four rows for three
+     choices, and on a page that has to fit the screen without a scroll (Rob,
+     2026-10-11) those rows were the card tray's. Three names fit one row at
+     360px; with the label they do not, so below about 392px the label takes
+     the line above, rather than the last name wrapping on its own. */
   @media (max-width: 30rem) {
-    #firmware-switch { flex-direction: column; gap: 0; }
-    #firmware-switch .label { margin: 0 0 .35rem; }
-    #firmware-switch button { width: 12rem; padding: .35rem .6rem; margin: -1px 0 0; }
-    #firmware-switch button:first-of-type { margin-top: 0; border-radius: 5px 5px 0 0; }
-    #firmware-switch button:last-of-type { border-radius: 0 0 5px 5px; }
+    #firmware-switch .label { flex-basis: 100%; text-align: center; margin: 0 0 .3rem; }
+    #firmware-switch button { padding: .3rem .4rem; }
+  }
+  @media (min-width: 24.5rem) and (max-width: 30rem) {
+    #firmware-switch .label { flex-basis: auto; margin: 0 .4rem 0 0; }
   }
   /* The build half of the panel: same voice and same column as the prose above
      it, set off only by its headings, because it is the end of one argument
@@ -713,9 +719,9 @@
   /* The UA's own display:none for [hidden] loses to the rule above it, so the
      hidden state has to be said here or the line is on every host. */
   #getone[hidden] { display: none; }
-  /* Balanced, because on a phone this is two lines and the second was one word
-     hanging under the first. Ignored by a browser that has never heard of it,
-     which costs that browser the orphan and nothing else. */
+  /* Balanced, in case a narrow phone breaks the line: then the second half is
+     not one word hanging under the first. Ignored by a browser that has never
+     heard of it, which costs that browser the orphan and nothing else. */
   #getone p {
     margin: 0; color: #7c848f; font-size: .95em; text-align: center;
     text-wrap: balance;
@@ -1092,15 +1098,15 @@
     </div>
   </div>
   <div id="cardtray"></div>
-  <!-- Last, and the only thing here asking for anything: one sentence saying
-       what the page has been, with the shop behind three words of it.
+  <!-- Last, and the only thing here asking for anything: one short line saying
+       what the page is, with the shop behind the words that ask. One line, so
+       a phone with the wallet open has no scroll (Rob, 2026-10-11).
 
        It ships hidden and the script below shows it on bitsaga.be, so what is
        published and what is served are the same bytes, and a clone of this
        repository is not left advertising a shop its host does not run. -->
   <div id="getone" hidden>
-    <p>Everything above is a simulation of
-      <a id="getone-link" href="/shop/">hardware you can buy</a>.</p>
+    <p>Simulation. <a id="getone-link" href="/shop/">Buy the real device &rarr;</a></p>
   </div>
   </footer>
 
@@ -1947,6 +1953,7 @@ function narrate(message) {
 // to everybody, including the people who never pressed a key.
 function startWallet() {
   holder = "wallet";
+  document.body.classList.remove("doom-on");
   walletCycleProgress = 0;
   doomHint.textContent = BASE_FIRMWARE === "doomsigner" ? DOOM_HINT_OUT : "";
   if (walletStarted) {
@@ -2116,6 +2123,7 @@ function startWallet() {
 
 function startDoom() {
   holder = "doom";
+  document.body.classList.add("doom-on");
   if (!window.DoomBoot) {
     startWallet();
     return;

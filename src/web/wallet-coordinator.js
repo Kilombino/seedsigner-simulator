@@ -380,9 +380,13 @@
     // numbers, the address and the line saying what is happening keep their
     // size, because those are what somebody is actually here to read.
     "@media (max-width:61.99rem) and (orientation:portrait){",
-    ".wal-body{padding:0 .8rem .85rem}",
+    // And the whole drawer fits under the device without a scroll (Rob,
+    // 2026-10-11): the bar and the spacing give up what the cards need.
+    ".wal-head{padding:.35rem .8rem}",
+    ".wal-body{padding:0 .8rem .75rem}",
     ".wal-note{margin:.25rem 0 0;font-size:.76rem}",
-    ".wal>.wal-note{margin:.5rem .8rem 0}",
+    ".wal>.wal-note{margin:.45rem .8rem 0}",
+    ".wal-diy{margin:.4rem 0 0}",
     ".wal-howto{margin:.6rem 0 0}",
     ".wal-howto li{margin:0 0 .55rem}",
     ".wal-path{margin:.25rem 0 0;padding:.4rem .6rem}",

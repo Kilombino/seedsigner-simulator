@@ -68,6 +68,7 @@ SUITE = [
     ("mainnet", ["test_mainnet.py"], True),
     ("tutorial", ["test_tutorial.py"], True),
     ("tutorial_single", ["test_tutorial_single.py"], True),
+    ("phone_fit", ["test_phone_fit.py"], True),
 ]
 
 # test_tutorial_musig.py is not here either, and for a worse reason: it is

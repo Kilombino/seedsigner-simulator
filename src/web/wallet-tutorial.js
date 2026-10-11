@@ -180,24 +180,32 @@
     // happening do not need four words between them explaining themselves, and
     // the panel they sit in is half a phone screen. The name is still there for
     // anything that reads rather than looks: aria-label and title, both.
-    ".tut button{display:inline-grid;place-items:center;width:2.2rem;height:2.2rem;",
+    ".tut button,.tut-controls button{display:inline-grid;place-items:center;",
+    "width:2.2rem;height:2.2rem;",
     "font:inherit;font-size:.88rem;color:#8b939e;background:#1d2026;",
     "border:1px solid #2a2e35;border-radius:6px;padding:0;cursor:pointer}",
-    ".tut button svg{width:1.1rem;height:1.1rem;fill:none;stroke:currentColor;",
+    ".tut button svg,.tut-controls button svg{width:1.1rem;height:1.1rem;fill:none;",
+    "stroke:currentColor;",
     "stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}",
-    ".tut button.wide{width:auto;gap:.45rem;grid-auto-flow:column;padding:0 .8rem}",
-    ".tut button:hover:not(:disabled){color:#d7dbe0;border-color:#3a3f47}",
-    ".tut button:disabled{opacity:.4;cursor:default}",
-    ".tut button.on{color:#f7931a;border-color:#f7931a;background:#16181c}",
-    ".tut button.primary{color:#12151a;background:#f7931a;border-color:#f7931a;",
+    ".tut button.wide,.tut-controls button.wide{width:auto;gap:.45rem;",
+    "grid-auto-flow:column;padding:0 .8rem}",
+    ".tut button:hover:not(:disabled),.tut-controls button:hover:not(:disabled){",
+    "color:#d7dbe0;border-color:#3a3f47}",
+    ".tut button:disabled,.tut-controls button:disabled{opacity:.4;cursor:default}",
+    ".tut button.on,.tut-controls button.on{color:#f7931a;border-color:#f7931a;",
+    "background:#16181c}",
+    ".tut button.primary,.tut-controls button.primary{color:#12151a;background:#f7931a;",
+    "border-color:#f7931a;",
     "font-weight:600}",
-    ".tut button.primary:hover:not(:disabled){color:#12151a;background:#ffa32e;",
+    ".tut button.primary:hover:not(:disabled),",
+    ".tut-controls button.primary:hover:not(:disabled){color:#12151a;background:#ffa32e;",
     "border-color:#ffa32e}",
-    ".tut button:focus-visible{outline:2px solid #f7931a;outline-offset:2px}",
+    ".tut button:focus-visible,.tut-controls button:focus-visible{",
+    "outline:2px solid #f7931a;outline-offset:2px}",
     // display:inline-grid above outranks the [hidden] the browser supplies,
     // so the two controls that are meant to be absent at rest were merely
     // labelled absent and drawn anyway.
-    ".tut button[hidden]{display:none}",
+    ".tut button[hidden],.tut-controls button[hidden]{display:none}",
 
     // Where you are, in six phases rather than in fourteen steps. Fourteen is
     // an inventory; six is a shape somebody can hold while they watch. The one
@@ -422,6 +430,42 @@
     ".tut-phone{width:100%}",
     ".tut-phone-screen{min-height:10.5rem}",
     ".tut-do{margin:.45rem 0 0}",
+    // The run, so that all of it fits the screen with no scroll (Rob,
+    // 2026-10-11). The controls sit beside the phase and the step
+    // (placeControls), so the panel is the wallet alone, without the box
+    // around it. The wallet gives up air, not content: while a payment is up
+    // the rows under it go, and the fee and its state share one line.
+    ".tut-phases{margin:.3rem 0 0}",
+    ".tut-sayhead.with-controls{display:flex;flex-wrap:wrap;align-items:center;",
+    "gap:.4rem .6rem;margin:.4rem 0 0}",
+    ".tut-sayhead.with-controls .tut-saytext{flex:1 1 10rem;min-width:0;line-height:1.3}",
+    ".tut-sayhead.with-controls .tut-phase{margin:0}",
+    ".tut-sayhead.with-controls .tut-step{margin:.1rem 0 0;text-wrap:balance}",
+    ".tut-sayhead .tut-controls{flex:none;flex-wrap:nowrap;gap:.35rem;margin-left:auto}",
+    ".tut.tut-up{padding:.3rem 0 0;background:none;border:0;overflow:visible}",
+    ".tut.tut-up .tut-head{display:none}",
+    ".tut.tut-up .tut-swap{margin:0}",
+    ".tut.tut-up .tut-verdict{margin:0 0 .45rem}",
+    ".tut-do{padding:.35rem .6rem}",
+    ".tut-phone{padding:4px}",
+    ".tut-appbar{padding:.4rem .7rem .3rem}",
+    ".tut-phone .tut-flow{padding:.4rem .7rem 0;line-height:1.35}",
+    ".tut-phone .tut-arrow{margin:0}",
+    ".tut-phone-screen{min-height:8.5rem}",
+    ".tut-phone-canvas{height:7rem;margin:.25rem auto .45rem}",
+    ".tut-phone-face{padding:.5rem .8rem .6rem}",
+    ".tut-phone-face.paying .tut-w-row{display:none}",
+    ".tut-w-pay{margin:.45rem 0 0;padding:.4rem .55rem}",
+    ".tut-w-pay small,.tut-w-pay span{display:inline}",
+    ".tut-w-pay span::before{content:\"  \\b7  \";color:#9aa0a8}",
+    // The cards in the wallet drawer, the same cards with less air, so all of
+    // them fit under the device with no scroll (Rob, 2026-10-11).
+    "#start-tutorial{margin:.55rem 0 0}",
+    "#start-tutorial .tut-offer{margin:0 0 .35rem}",
+    "#start-tutorial .tut-start{padding:.35rem .8rem;margin:0 0 .35rem;gap:.75rem}",
+    "#start-tutorial .tut-start svg{padding:.5rem}",
+    "#start-tutorial .tut-start b{line-height:1.3}",
+    "#start-tutorial .tut-start small{line-height:1.3;margin:.05rem 0 0}",
     "}",
   ].join("");
 
@@ -475,6 +519,7 @@
     this.bar.appendChild(this.barFill);
 
     var head = element("div", "tut-head");
+    this.head = head;
     // The heading is for the panel at rest. Once a run is under way the phase
     // row and the step title say what it says and where you are as well, so it
     // goes: two titles above three words of instruction is the panel talking
@@ -632,8 +677,15 @@
     // they stay in the panel, which is what a page that has made no room does.
     var say = options.sayInto || root;
     say.appendChild(this.phaseRow);
-    say.appendChild(this.phaseText);
-    say.appendChild(this.stepText);
+    // The phase and the step in one box, with room beside them for the
+    // controls: on a phone held upright they come up here while a run is going
+    // (placeControls). Anywhere else the box is just the two lines.
+    this.sayHead = element("div", "tut-sayhead");
+    var sayText = element("div", "tut-saytext");
+    sayText.appendChild(this.phaseText);
+    sayText.appendChild(this.stepText);
+    this.sayHead.appendChild(sayText);
+    say.appendChild(this.sayHead);
     say.appendChild(this.doText);
     root.appendChild(this.verdict);
     root.appendChild(swap);
@@ -656,6 +708,11 @@
     this.clearPhone();
     this.summary();
     this.introduce();
+    if (UPRIGHT) {
+      var place = this.placeControls.bind(this);
+      if (UPRIGHT.addEventListener) UPRIGHT.addEventListener("change", place);
+      else if (UPRIGHT.addListener) UPRIGHT.addListener(place);
+    }
     this.reflect();
     // A frame the capture stream can always find something new in, so the
     // device's camera never sits on a stale picture.
@@ -1070,6 +1127,9 @@
         face.appendChild(policy);
       }
     }
+    // While a payment is up (or a MuSig2 spend is being signed), the payment
+    // is what is being read; on a phone the rows under it make room for it.
+    face.classList.toggle("paying", !!(state.psbt || state.session));
     face.hidden = false;
     this.canvas.hidden = true;
     this.phone.dataset.view = "home";
@@ -1413,6 +1473,24 @@
     this.handsButton.textContent = this.mode === "hands" ? "Let it drive" : "I will drive";
     this.handsButton.classList.toggle("on", this.mode === "hands");
     this.setProgress(this.fraction || 0);
+    this.placeControls();
+  };
+
+  // On a phone held upright, while a run is going, the controls sit beside the
+  // phase and the step under the device. The panel below is then the wallet
+  // alone, and a whole run fits the screen with no scroll (Rob, 2026-10-11).
+  // At rest, and on anything wider, they stay in the panel's own head, where
+  // Play the demo is the panel's one invitation.
+  var UPRIGHT = scope.matchMedia
+    ? scope.matchMedia("(max-width:61.99rem) and (orientation:portrait)") : null;
+
+  Tutorial.prototype.placeControls = function () {
+    var up = !!(UPRIGHT && UPRIGHT.matches) && this.mode !== "idle"
+      && this.sayHead.parentNode !== this.root;
+    var home = up ? this.sayHead : this.head;
+    if (this.controls.parentNode !== home) home.appendChild(this.controls);
+    this.sayHead.classList.toggle("with-controls", up);
+    this.root.classList.toggle("tut-up", up);
   };
 
   Tutorial.prototype.start = function (mode) {
@@ -2494,7 +2572,9 @@
         state.receive = out;
         t.detail("MuSig2 descriptor", state.descriptor);
         t.detail("receive address", out.address);
-        t.verdict.textContent = "A and B sign the Taproot key path. A+C and B+C are fallback leaves, not exercised here.";
+        // In the details, not in the panel: the verdict box is for errors, and
+        // on a phone this line was the scroll (2026-10-11).
+        t.detail("who signs", "A and B sign the Taproot key path. A+C and B+C are fallback leaves, not exercised here.", true);
       });
     })], replay));
     steps.push(step("Ask Bitsaga Signet's faucet for test coins", phases[3], [coordinator(function (context) {
@@ -2506,7 +2586,6 @@
         state.claimPending = false;
         context.check();
         t.detail("faucet transaction", paid.txid);
-        t.verdict.textContent = NOT_REAL;
       }, function (error) { state.claimPending = false; throw error; });
     }), coordinator(function () {
       return waitForBlock(t, state.funding, "the faucet payment", "Waiting for test coins.");
@@ -2528,6 +2607,7 @@
         state.session = session;
         state.rounds = [];
         t.detail("unsigned MuSig2 PSBT", session.psbt);
+        t.summary();
       });
     })], replay));
     [0, 1, 0].forEach(function (i, round) {
@@ -2571,12 +2651,10 @@
         context.check();
         if (sent.txid !== state.spend.txid) throw new Error("the network returned a different transaction id");
         t.detail("signed MuSig2 transaction", state.spend.hex);
+        t.detail("transaction id", state.spend.txid);
       });
     }), coordinator(function () {
       return waitForBlock(t, state.spend.txid, "the MuSig2 spend", "Waiting for the spend to be mined.");
-    }), coordinator(function () {
-      t.verdict.dataset.state = "good";
-      t.verdict.textContent = "MuSig2 signed by A and B, sent and confirmed on Bitsaga Signet: " + state.spend.txid;
     })], false));
     return steps;
   }
