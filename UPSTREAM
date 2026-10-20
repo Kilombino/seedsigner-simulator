@@ -38,10 +38,10 @@ tag    = 0.8.7
 wallet_zip_sha256          = 2db897dea90a0ecc090e959cbea34c6b4afbaa860478a260cc51f8cfdfd0a253
 wallet_zip_contents_sha256 = dbea45131cc89e391b8ced909975b7d0030771d1d284142dd8287668130f2974
 
-# Kilombino's fork of the release above: SeedSigner 0.8.7 plus XBT mode (every
-# input signed with the Bitcoin BLAKE2b unified sighash 0x21), JoinMarket
-# fidelity-bond spending and input-amount verification (upstream PR #995). An
-# unofficial fork, not affiliated with SeedSigner. Built like stock, plus the
+# SeedSigner XBT (BLAKE2b), Kilombino's version of the release above: SeedSigner
+# 0.8.7 plus XBT mode (every input signed with the XBT (BLAKE2b) unified sighash
+# 0x21), JoinMarket fidelity-bond spending and input-amount verification
+# (upstream PR #995). Unofficial, not affiliated with SeedSigner. Built like stock, plus the
 # Spanish catalog from the fork's translations submodule (see the build script).
 [xbt]
 repo   = https://github.com/Kilombino/seedsigner.git

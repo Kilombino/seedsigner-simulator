@@ -66,7 +66,7 @@ Usage: build-wallet-zip.sh FIRMWARE [options]
                                  Satochip support   ->  wallet-smartcard.zip
                      stock       SeedSigner as its own project publishes it
                                                     ->  wallet-stock.zip
-                     xbt         Kilombino's SeedSigner fork with XBT mode
+                     xbt         SeedSigner XBT (BLAKE2b), with XBT mode
                                  (sighash 0x21) and fidelity-bond spending,
                                  built like stock, plus its Spanish catalog
                                                     ->  wallet-xbt.zip
@@ -640,9 +640,9 @@ fi
 export SOURCE_DATE_EPOCH
 step "SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}"
 
-# The XBT fork's Spanish. Neither firmware's zip carries the translations
+# SeedSigner XBT (BLAKE2b)'s Spanish. Neither firmware's zip carries the translations
 # submodule (it is a separate repository), and the page boots in Spanish, so the
-# xbt build fetches the fork's translations at the commit its tree pins and
+# xbt build fetches its translations at the commit its tree pins and
 # compiles the Spanish catalog with build/i18n/msgfmt.py (CPython's, so no
 # gettext tools are needed). The catalog's header is marked fuzzy, which
 # msgfmt.py would skip along with the charset, so that one flag is dropped.

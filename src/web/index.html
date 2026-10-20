@@ -78,9 +78,10 @@
 
 <h1>Simulador de SeedSigner</h1>
 <div class="note">
-  <p><strong>Fork con soporte XBT.</strong> Por defecto corre el
-  <a href="https://github.com/Kilombino/seedsigner" rel="noopener">fork XBT de SeedSigner</a>
-  (no oficial, no afiliado al proyecto SeedSigner): SeedSigner 0.8.7 más el
+  <p><strong>Con soporte XBT (BLAKE2b).</strong> Por defecto corre
+  <a href="https://github.com/Kilombino/seedsigner" rel="noopener">SeedSigner XBT (BLAKE2b)</a>,
+  la versión XBT (BLAKE2b) de SeedSigner: versión no oficial, no afiliada al proyecto
+  SeedSigner. Es SeedSigner 0.8.7 más el
   <strong>modo XBT</strong>, que firma cada entrada con el sighash unificado
   <code>0x21</code> de Bitcoin BLAKE2b (válido solo en esa cadena, sin replay a la
   cadena SHA-256), el gasto de <strong>fidelity bonds de JoinMarket</strong> y la
@@ -113,8 +114,8 @@ botones dibujados en el dispositivo.</p>
 WebAssembly) dentro de un Web Worker, y lo que corre es el propio punto de entrada
 del firmware. Los menús, el manejo de la seed, el parseo de PSBT y los codificadores
 de QR son todos del proyecto original, sin modificar.</p>
-<p>Se construyen tres firmwares y el simulador indica cuál está corriendo: el fork
-XBT de Kilombino (por defecto), el SeedSigner estándar, lo que corre un dispositivo
+<p>Se construyen tres firmwares y el simulador indica cuál está corriendo: SeedSigner
+XBT (BLAKE2b) de Kilombino (por defecto, versión no oficial), el SeedSigner estándar, lo que corre un dispositivo
 normal, y el fork smartcard de 3rdIteration, un fork de terceros que añade soporte
 de SeedKeeper y Satochip. El control bajo el dispositivo cambia entre ellos.</p>
 <p>Solo se sustituyen los cuatro puntos donde el firmware busca hardware, desde
@@ -178,9 +179,9 @@ están cubiertas en las notas de auto-alojamiento del repositorio.</p>
   <p>Código fuente, y el script de build que reconstruye el monedero desde su commit
   fijado del proyecto original:
   <a href="https://github.com/Kilombino/seedsigner-simulator" rel="noopener">github.com/Kilombino/seedsigner-simulator</a>
-  (rama <code>xbt</code>, fork de
+  (rama <code>xbt</code>, basado en
   <a href="https://github.com/bitsagarob/seedsigner-simulator" rel="noopener">bitsagarob/seedsigner-simulator</a>).
-  El firmware XBT: <a href="https://github.com/Kilombino/seedsigner" rel="noopener">github.com/Kilombino/seedsigner</a>.</p>
+  SeedSigner XBT (BLAKE2b): <a href="https://github.com/Kilombino/seedsigner" rel="noopener">github.com/Kilombino/seedsigner</a>.</p>
   <p>Con licencia MIT. El propio SeedSigner también es MIT, Copyright (c) 2021
   SeedSigner; el firmware que corre aquí es su trabajo.</p>
   <p>Un proyecto independiente, no afiliado ni respaldado por el proyecto SeedSigner.

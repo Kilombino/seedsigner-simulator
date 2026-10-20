@@ -1,4 +1,4 @@
-"""Drive the forked SeedSigner simulator (port 3116) through a fidelity-bond spend.
+"""Drive SeedSigner XBT (BLAKE2b) in the simulator through a fidelity-bond spend.
 
 The page is not modified: getUserMedia is replaced (test-only, via an init script)
 by a canvas stream this script paints QR images on, the way a phone screen would be
@@ -49,7 +49,7 @@ def main():
         log = Log(page)
         page.goto(harness.wallet_url())
         log.wait(r"display\(\) enter: MainMenuScreen", 300, "boot")
-        check("the forked firmware boots", True)
+        check("SeedSigner XBT (BLAKE2b) boots", True)
         page.evaluate("() => document.body.focus()")
         shot = lambda name: harness.save_screen(page, os.path.join(SHOTS, name + ".png"))
 
@@ -83,11 +83,11 @@ def main():
         page.wait_for_timeout(1000); shot("03-overview")
         m = log.mark(); key("Enter")
         log.wait(r"display\(\) enter: LargeIconStatusScreen", 60, "XBT mode screen", since=m)
-        check("the fork says it signs for XBT (0x21)", True)
+        check("the device says it signs for XBT (0x21)", True)
         page.wait_for_timeout(1000); shot("03b-xbt-mode")
         m = log.mark(); key("Enter")
         log.wait(r"display\(\) enter: PSBTFidelityBondScreen", 60, "bond screen", since=m)
-        check("the fork shows the fidelity bond screen", True)
+        check("the device shows the fidelity bond screen", True)
         page.wait_for_timeout(1000); shot("04-fidelity-bond")
         m = log.mark(); key("Enter")
         log.wait(r"display\(\) enter: WarningScreen", 60, "full spend warning", since=m)

@@ -364,9 +364,9 @@ const DEBUG = new URLSearchParams(location.search).has("debug");
 // and stays the default; "stock" is SeedSigner as its own project publishes it.
 // ?firmware=stock picks the other one. Checked against the list rather than
 // interpolated, so the URL cannot name a file to fetch.
-// seed.kilombino.com adds a third, and makes it the default: "xbt", Kilombino's
-// SeedSigner fork with XBT mode (sighash 0x21, Bitcoin BLAKE2b) and JoinMarket
-// fidelity-bond spending. The multisig tutorial still opens the smartcard fork.
+// seed.kilombino.com adds a third, and makes it the default: "xbt", SeedSigner
+// XBT (BLAKE2b) with XBT mode (sighash 0x21) and JoinMarket fidelity-bond
+// spending. The multisig tutorial still opens the smartcard fork.
 const FIRMWARES = ["xbt", "smartcard", "stock"];
 const asked = new URLSearchParams(location.search).get("firmware");
 const FIRMWARE = FIRMWARES.includes(asked) ? asked
@@ -385,13 +385,13 @@ const TUTORIAL = new URLSearchParams(location.search).has("tutorial")
 // of it, and saying so is the whole point of naming them at all.
 const FIRMWARE_INFO = {
   xbt: {
-    button: "Fork XBT",
-    says: "Corriendo el fork XBT de SeedSigner (Kilombino/seedsigner, v0.8.7-xbt1): " +
+    button: "XBT (BLAKE2b)",
+    says: "Corriendo SeedSigner XBT (BLAKE2b) (Kilombino/seedsigner, v0.8.7-xbt1): " +
           "SeedSigner 0.8.7 con modo XBT (firma con sighash 0x21, solo válida en " +
-          "Bitcoin BLAKE2b) y gasto de fidelity bonds de JoinMarket. Es un fork no " +
-          "oficial, no afiliado al proyecto SeedSigner.",
-    panel: "el fork XBT de SeedSigner de Kilombino, un fork no oficial que añade el " +
-           "modo XBT (sighash 0x21 para Bitcoin BLAKE2b) y el gasto de fidelity bonds",
+          "XBT (BLAKE2b)) y gasto de fidelity bonds de JoinMarket. Es una versión no " +
+          "oficial, no afiliada al proyecto SeedSigner.",
+    panel: "SeedSigner XBT (BLAKE2b) de Kilombino, una versión no oficial con soporte " +
+           "XBT (BLAKE2b): modo XBT (sighash 0x21) y gasto de fidelity bonds",
   },
   smartcard: {
     button: "Fork smartcard",
