@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<title>SeedSigner simulator</title>
-<meta name="description" content="Real SeedSigner device firmware running in a browser tab. A simulator, not a wallet.">
+<title>Simulador de SeedSigner</title>
+<meta name="description" content="El firmware real del dispositivo SeedSigner corriendo en una pestaña del navegador. Un simulador, no un monedero.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -76,85 +76,115 @@
 </head>
 <body>
 
-<h1>SeedSigner simulator</h1>
-<p class="lead">Real SeedSigner device firmware, the actual Python off the device,
-running in this browser tab. Its screen is a canvas, its buttons are your keyboard,
-and its camera is your webcam.</p>
+<h1>Simulador de SeedSigner</h1>
+<div class="note">
+  <p><strong>Fork con soporte XBT.</strong> Por defecto corre el
+  <a href="https://github.com/Kilombino/seedsigner" rel="noopener">fork XBT de SeedSigner</a>
+  (no oficial, no afiliado al proyecto SeedSigner): SeedSigner 0.8.7 más el
+  <strong>modo XBT</strong>, que firma cada entrada con el sighash unificado
+  <code>0x21</code> de Bitcoin BLAKE2b (válido solo en esa cadena, sin replay a la
+  cadena SHA-256), el gasto de <strong>fidelity bonds de JoinMarket</strong> y la
+  comprobación de los importes de las entradas. El modo XBT se apaga en Ajustes para
+  firmar para la cadena SHA-256. El SeedSigner estándar y el fork smartcard siguen
+  disponibles en el control bajo el dispositivo.</p>
+</div>
+<p class="lead">El firmware real del dispositivo SeedSigner, el mismo Python que corre
+en el aparato, ejecutándose en esta pestaña del navegador. Su pantalla es un canvas,
+sus botones son tu teclado, y su cámara es tu webcam.</p>
 
 <div class="note">
-  <p><strong>This is a simulator, not a wallet.</strong> It runs in a browser tab on
-  an ordinary computer: no secure element, no air gap, nothing hidden from the rest
-  of the machine.</p>
-  <p>Treat every key it shows you as public, and
-  <strong>never enter a seed phrase you rely on</strong>. If you want something to
-  type in, use a BIP39 test vector; they exist for exactly this.</p>
+  <p><strong>Esto es un simulador, no un monedero.</strong> Corre en una pestaña del
+  navegador, en un ordenador normal: sin secure element, sin air gap, sin nada oculto
+  al resto de la máquina.</p>
+  <p>Trata cada clave que te muestre como pública, y
+  <strong>nunca metas una frase semilla que uses de verdad</strong>. Si quieres algo
+  para escribir, usa un vector de prueba BIP39; existen justo para esto.</p>
 </div>
 
-<p class="start"><a class="button" href="wallet.html">Open the simulator</a></p>
-<p class="after">First load fetches about 30 MB (Python and the wallet) and takes a
-few seconds. After that it runs offline. Arrow keys move, Enter selects,
-<code>1</code> <code>2</code> <code>3</code> are the side buttons, or click the
-buttons on the device.</p>
+<p class="start"><a class="button" href="wallet.html">Abrir el simulador</a></p>
+<p class="after">La primera carga descarga unos 30 MB (Python y el monedero) y tarda
+unos segundos. Después funciona sin conexión. Las flechas mueven, Enter selecciona,
+<code>1</code> <code>2</code> <code>3</code> son los botones laterales, o pulsa los
+botones dibujados en el dispositivo.</p>
 
-<h2>What it actually is</h2>
-<p>Not a re-creation. The wallet's own Python is executed by
-<a href="https://pyodide.org" rel="noopener">Pyodide</a> (CPython compiled to
-WebAssembly) inside a Web Worker, and the firmware's own entry point is what runs.
-The menus, the seed handling, the PSBT parsing and the QR encoders are all
-upstream's, unmodified.</p>
-<p>Two firmwares are built and the simulator says which one it is running: stock
-SeedSigner, what a plain device runs, and the 3rdIteration smartcard fork, a third
-party fork that adds SeedKeeper and Satochip support. The control under the device
-switches between them.</p>
-<p>Only the four places the firmware reaches for hardware are replaced, from the
-outside, and the fourth only exists in the fork:</p>
+<h2>Qué es en realidad</h2>
+<p>No es una recreación. El propio Python del monedero lo ejecuta
+<a href="https://pyodide.org" rel="noopener">Pyodide</a> (CPython compilado a
+WebAssembly) dentro de un Web Worker, y lo que corre es el propio punto de entrada
+del firmware. Los menús, el manejo de la seed, el parseo de PSBT y los codificadores
+de QR son todos del proyecto original, sin modificar.</p>
+<p>Se construyen tres firmwares y el simulador indica cuál está corriendo: el fork
+XBT de Kilombino (por defecto), el SeedSigner estándar, lo que corre un dispositivo
+normal, y el fork smartcard de 3rdIteration, un fork de terceros que añade soporte
+de SeedKeeper y Satochip. El control bajo el dispositivo cambia entre ellos.</p>
+<p>Solo se sustituyen los cuatro puntos donde el firmware busca hardware, desde
+fuera, y el cuarto solo existe en el fork:</p>
 <ul>
-  <li><strong>Display:</strong> the panel driver is swapped beneath SeedSigner's
-  own renderer, and raw frames are painted into a canvas.</li>
-  <li><strong>Buttons:</strong> the worker is blocked inside the wallet's main loop
-  and can never answer a message, so keypresses cross on shared memory and wake it.</li>
-  <li><strong>Camera:</strong> your webcam. SeedSigner reads QR codes with a C
-  library that has no WebAssembly build, so the browser decodes the image and hands
-  the raw bytes to the firmware's own unmodified decoder.</li>
-  <li><strong>Smartcard:</strong> simulated SeedKeeper and Satochip cards answering
-  real APDUs, because browsers have no smartcard API at all. The smartcard fork
-  only: stock SeedSigner has no card code for them to answer.</li>
+  <li><strong>Pantalla:</strong> se intercambia el driver del panel por debajo del
+  propio renderer de SeedSigner, y los frames en crudo se pintan en un canvas.</li>
+  <li><strong>Botones:</strong> el worker está bloqueado dentro del bucle principal
+  del monedero y nunca puede responder a un mensaje, así que las pulsaciones cruzan
+  por memoria compartida y lo despiertan.</li>
+  <li><strong>Cámara:</strong> tu webcam. SeedSigner lee códigos QR con una librería
+  en C que no tiene build de WebAssembly, así que el navegador decodifica la imagen y
+  entrega los bytes en crudo al propio decodificador sin modificar del firmware.</li>
+  <li><strong>Smartcard:</strong> tarjetas SeedKeeper y Satochip simuladas que
+  responden APDUs reales, porque los navegadores no tienen API de smartcard alguna.
+  Solo en el fork smartcard: el SeedSigner estándar no tiene código de tarjetas que
+  las use.</li>
 </ul>
-<p>Each firmware is pinned to a single upstream commit, and a build script in the
-repository rebuilds it from that commit, so the claim that this is real device
-firmware is one you can check rather than take on trust.</p>
+<p>Cada firmware está fijado a un único commit del proyecto original, y un script de
+build en el repositorio lo reconstruye desde ese commit, de modo que la afirmación de
+que esto es firmware real del dispositivo es algo que puedes comprobar en vez de
+creer a ciegas.</p>
 
-<h2>What works, and what does not</h2>
+<h2>Qué funciona y qué no</h2>
 <ul>
-  <li><strong>Works:</strong> the full menu tree, loading a seed by QR or by hand,
-  passphrases, xpub export, loading and signing a PSBT, SeedQR backup, and every
-  screen that draws a QR.</li>
-  <li><strong>Partly, and on the smartcard fork only:</strong> three simulated
-  smartcards go in and out of the reader, each a SeedKeeper or a Satochip, and can
-  be initialised with a PIN. A seed can be saved onto a SeedKeeper and loaded back
-  off it. Signing on a card is not implemented yet.</li>
-  <li><strong>Not at all:</strong> microSD, so settings reset when you reload.
-  Animations do not animate, because this environment has no threads.</li>
+  <li><strong>Funciona:</strong> el árbol de menús completo, cargar una seed por QR o
+  a mano, passphrases, exportar xpub, cargar y firmar una PSBT, copia de seguridad
+  SeedQR, y toda pantalla que dibuje un QR.</li>
+  <li><strong>En parte, y solo en el fork smartcard:</strong> tres smartcards
+  simuladas entran y salen del lector, cada una un SeedKeeper o un Satochip, y se
+  pueden inicializar con un PIN. Se puede guardar una seed en un SeedKeeper y volver
+  a leerla. Firmar en una tarjeta aún no está implementado.</li>
+  <li><strong>Nada en absoluto:</strong> microSD, así que los ajustes se reinician al
+  recargar. Las animaciones no se animan, porque este entorno no tiene hilos.</li>
 </ul>
-<p class="muted">Nothing leaves the tab. This page and the simulator both declare a
-content security policy that permits no connections to any other origin, and there is no
-server to send anything to.</p>
+<p class="muted">Nada sale de la pestaña. Esta página y el simulador declaran ambos
+una política de seguridad de contenido que no permite conexiones a ningún otro
+origen, y no hay servidor al que enviar nada.</p>
 
-<h2>If the simulator does not start</h2>
-<p>It needs to be served with <code>Cross-Origin-Opener-Policy: same-origin</code>
-and <code>Cross-Origin-Embedder-Policy: require-corp</code>; without them the
-browser withholds the shared memory every keypress travels on, and the wallet never
-starts. Scanning additionally needs a secure context: https, or localhost. Both are
-covered in the repository's self-hosting notes.</p>
+<h2>Comprueba tu SeedSigner de verdad</h2>
+<p>Un firmante que eligiera mal a propósito el número secreto de cada firma (el
+<em>nonce</em>) podría ir filtrando tu clave dentro de firmas que parecen normales.
+SeedSigner no lo hace: calcula ese número de forma determinista (RFC&nbsp;6979), así que
+una misma clave y una misma transacción dan siempre la misma firma, y cualquiera puede
+calcularla por su cuenta y compararla.</p>
+<p><a href="https://newtonick.github.io/deterministic-nonce-check/" rel="noopener">deterministic-nonce-check</a>,
+de newtonick (mantenedor principal de SeedSigner), te guía en uno o dos minutos: firmas
+una transacción de prueba con una seed desechable y la página comprueba que la firma de
+tu dispositivo es exactamente la esperada. Funciona también con Krux y Specter DIY, y todo
+ocurre en tu navegador.</p>
+<p class="muted">Usa siempre una seed desechable para la prueba, nunca la de tus fondos.</p>
+
+<h2>Si el simulador no arranca</h2>
+<p>Necesita servirse con <code>Cross-Origin-Opener-Policy: same-origin</code>
+y <code>Cross-Origin-Embedder-Policy: require-corp</code>; sin ellas el navegador
+retiene la memoria compartida por la que viaja cada pulsación, y el monedero nunca
+arranca. Escanear necesita además un contexto seguro: https, o localhost. Ambas cosas
+están cubiertas en las notas de auto-alojamiento del repositorio.</p>
 
 <footer>
-  <p>Source, and the build script that rebuilds the wallet from its pinned upstream
-  commit:
-  <a href="https://github.com/bitsagarob/seedsigner-sim" rel="noopener">github.com/bitsagarob/seedsigner-sim</a>.</p>
-  <p>MIT licensed. SeedSigner itself is MIT too, Copyright (c) 2021 SeedSigner; the
-  firmware running here is their work.</p>
-  <p>An independent project, not affiliated with or endorsed by the SeedSigner
-  project. Running this proves nothing about a real device.</p>
+  <p>Código fuente, y el script de build que reconstruye el monedero desde su commit
+  fijado del proyecto original:
+  <a href="https://github.com/Kilombino/seedsigner-sim" rel="noopener">github.com/Kilombino/seedsigner-sim</a>
+  (rama <code>xbt</code>, fork de
+  <a href="https://github.com/bitsagarob/seedsigner-sim" rel="noopener">bitsagarob/seedsigner-sim</a>).
+  El firmware XBT: <a href="https://github.com/Kilombino/seedsigner" rel="noopener">github.com/Kilombino/seedsigner</a>.</p>
+  <p>Con licencia MIT. El propio SeedSigner también es MIT, Copyright (c) 2021
+  SeedSigner; el firmware que corre aquí es su trabajo.</p>
+  <p>Un proyecto independiente, no afiliado ni respaldado por el proyecto SeedSigner.
+  Ejecutar esto no prueba nada sobre un dispositivo real.</p>
 </footer>
 
 </body>

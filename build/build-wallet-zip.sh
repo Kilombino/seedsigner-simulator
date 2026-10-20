@@ -66,6 +66,10 @@ Usage: build-wallet-zip.sh FIRMWARE [options]
                                  Satochip support   ->  wallet-smartcard.zip
                      stock       SeedSigner as its own project publishes it
                                                     ->  wallet-stock.zip
+                     xbt         Kilombino's SeedSigner fork with XBT mode
+                                 (sighash 0x21) and fidelity-bond spending,
+                                 built like stock, plus its Spanish catalog
+                                                    ->  wallet-xbt.zip
 
   --out DIR        Write the zip here (default: <repo>/build/out)
   --cache DIR      Cache downloaded PyPI artifacts here
@@ -107,9 +111,9 @@ while [ "$#" -gt 0 ]; do
 done
 
 case "${FIRMWARE}" in
-    smartcard|stock) ;;
-    "")  echo "which firmware? one of: smartcard stock" >&2; usage >&2; exit 2 ;;
-    *)   echo "no such firmware: ${FIRMWARE} (one of: smartcard stock)" >&2; exit 2 ;;
+    smartcard|stock|xbt) ;;
+    "")  echo "which firmware? one of: smartcard stock xbt" >&2; usage >&2; exit 2 ;;
+    *)   echo "no such firmware: ${FIRMWARE} (one of: smartcard stock xbt)" >&2; exit 2 ;;
 esac
 
 die() {
@@ -295,7 +299,7 @@ STAGE_PACKAGES=(
 )
 
 ;;
-stock)
+stock|xbt)
 
 # Stock's whole requirements.txt is five lines, and two of them do not belong in
 # a zip:
@@ -635,6 +639,29 @@ if [ -z "${SOURCE_DATE_EPOCH:-}" ]; then
 fi
 export SOURCE_DATE_EPOCH
 step "SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}"
+
+# The XBT fork's Spanish. Neither firmware's zip carries the translations
+# submodule (it is a separate repository), and the page boots in Spanish, so the
+# xbt build fetches the fork's translations at the commit its tree pins and
+# compiles the Spanish catalog with build/i18n/msgfmt.py (CPython's, so no
+# gettext tools are needed). The catalog's header is marked fuzzy, which
+# msgfmt.py would skip along with the charset, so that one flag is dropped.
+if [ "${FIRMWARE}" = "xbt" ]; then
+    TR_PATH="src/seedsigner/resources/seedsigner-translations"
+    TR_COMMIT="$(git -C "${UPSTREAM_SRC}" ls-tree HEAD "${TR_PATH}" | awk '{ print $3 }')"
+    TR_URL="$(git -C "${UPSTREAM_SRC}" config -f .gitmodules --get "submodule.${TR_PATH}.url")"
+    [ -n "${TR_COMMIT}" ] && [ -n "${TR_URL}" ] || die "the tree at ${UPSTREAM_COMMIT} pins no translations submodule"
+    step "translations ${TR_URL} @ ${TR_COMMIT}"
+    TR_SRC="${SOURCES}/translations"
+    git_checkout "${TR_URL}" "${TR_COMMIT}" "${TR_SRC}"
+    ES_PO="${TR_SRC}/l10n/es/LC_MESSAGES/messages.po"
+    [ -f "${ES_PO}" ] || die "no Spanish catalog at ${TR_COMMIT}"
+    sed '0,/^#, fuzzy$/{/^#, fuzzy$/d}' "${ES_PO}" > "${SOURCES}/es.po"
+    ES_MO_DIR="${UPSTREAM_SRC}/src/seedsigner/resources/seedsigner-translations/l10n/es/LC_MESSAGES"
+    mkdir -p "${ES_MO_DIR}"
+    python3 "${SCRIPT_DIR}/i18n/msgfmt.py" -o "${ES_MO_DIR}/messages.mo" "${SOURCES}/es.po" \
+        || die "could not compile the Spanish catalog"
+fi
 
 # .git was only needed for the checkout and the date above. Removing it now
 # keeps it out of the staged tree by construction rather than by filtering.

@@ -38,6 +38,19 @@ tag    = 0.8.7
 wallet_zip_sha256          = 2db897dea90a0ecc090e959cbea34c6b4afbaa860478a260cc51f8cfdfd0a253
 wallet_zip_contents_sha256 = dbea45131cc89e391b8ced909975b7d0030771d1d284142dd8287668130f2974
 
+# Kilombino's fork of the release above: SeedSigner 0.8.7 plus XBT mode (every
+# input signed with the Bitcoin BLAKE2b unified sighash 0x21), JoinMarket
+# fidelity-bond spending and input-amount verification (upstream PR #995). An
+# unofficial fork, not affiliated with SeedSigner. Built like stock, plus the
+# Spanish catalog from the fork's translations submodule (see the build script).
+[xbt]
+repo   = https://github.com/Kilombino/seedsigner.git
+commit = 617ab707989cd88b851ba1b5b0e767016be1077a
+tag    = v0.8.7-xbt1
+
+wallet_zip_sha256          = c8954cf9e32680326258b641c15555f52ed8968b3e6f55e96c88ca1c6a9cdaa2
+wallet_zip_contents_sha256 = 6f942e01f7945e8d3e07157f9772cf09b48c1fe1f5ebfead4cb0ce23c89a5017
+
 # The 3rdIteration fork, which merges the release above and adds smartcard
 # support: SeedKeeper and Satochip cards, the card menus, and the dependency
 # stack those need. This tag is also what the official pi0-smartcard device

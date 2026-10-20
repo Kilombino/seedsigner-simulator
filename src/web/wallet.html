@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,7 +9,7 @@
      asks it anything unless the multisig tutorial is running, and the wallet
      itself never talks to it at all. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://signet.bitsaga.be; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
-<title>SeedSigner wallet simulator</title>
+<title>Simulador de monedero SeedSigner</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#07111f">
@@ -220,63 +220,65 @@
 </head>
 <body>
   <header>
-    <h1>SeedSigner wallet simulator</h1>
+    <h1>Simulador de monedero SeedSigner</h1>
     <details id="about">
       <summary aria-label="How this works" title="How this works">i</summary>
       <div>
-        <p><strong>This is device firmware, not a re-creation of it</strong>: the
-        actual Python that runs on a SeedSigner, in this tab. Two builds are on
-        offer, stock SeedSigner and the 3rdIteration smartcard fork; the control
-        under the device says which one is running and switches between them.</p>
-        <p>Its Python is executed by Pyodide (CPython compiled to WebAssembly) inside a
-        Web Worker. The wallet code itself is unmodified; only the places it
-        reaches for hardware are replaced.</p>
+        <p><strong>Esto es firmware del dispositivo, no una recreación</strong>: el
+        Python real que corre en un SeedSigner, en esta pestaña. Se ofrecen dos builds,
+        el SeedSigner estándar y el fork smartcard de 3rdIteration; el control bajo el
+        dispositivo indica cuál está corriendo y cambia entre ambos.</p>
+        <p>Su Python lo ejecuta Pyodide (CPython compilado a WebAssembly) dentro de un
+        Web Worker. El código del monedero en sí está sin modificar; solo se sustituyen
+        los puntos donde busca hardware.</p>
         <ul>
-          <li><strong>Display:</strong> the driver hands raw RGB frames to the page,
-          which paints them into the canvas above.</li>
-          <li><strong>Buttons:</strong> the worker blocks on the wallet's main loop and
-          can never answer a message, so keys cross on a SharedArrayBuffer and wake it
-          with Atomics.</li>
-          <li><strong>Camera:</strong> your webcam via getUserMedia. SeedSigner reads QR
-          codes with pyzbar, a C library with no WebAssembly build, so decoding is done
-          by the browser's BarcodeDetector or by jsQR and the bytes are handed to the
-          unmodified decoder.</li>
-          <li id="about-smartcard"><strong>Smartcard:</strong> simulated SeedKeeper
-          and Satochip cards that answer real APDUs, because browsers have no
-          smartcard API at all. The smartcard fork only: stock SeedSigner has no
-          card code for them to answer.</li>
+          <li><strong>Pantalla:</strong> el driver entrega frames RGB en crudo a la
+          página, que los pinta en el canvas de arriba.</li>
+          <li><strong>Botones:</strong> el worker se bloquea en el bucle principal del
+          monedero y nunca puede responder a un mensaje, así que las teclas cruzan por un
+          SharedArrayBuffer y lo despiertan con Atomics.</li>
+          <li><strong>Cámara:</strong> tu webcam vía getUserMedia. SeedSigner lee códigos
+          QR con pyzbar, una librería en C sin build de WebAssembly, así que la
+          decodificación la hace el BarcodeDetector del navegador o jsQR y los bytes se
+          entregan al decodificador sin modificar.</li>
+          <li id="about-smartcard"><strong>Smartcard:</strong> tarjetas SeedKeeper y
+          Satochip simuladas que responden APDUs reales, porque los navegadores no tienen
+          API de smartcard alguna. Solo en el fork smartcard: el SeedSigner estándar no
+          tiene código de tarjetas que las use.</li>
         </ul>
-        <p>Nothing leaves your browser. The wallet has no network of any kind, and the
-        page's content security policy names exactly one other origin it may reach:
-        <code>signet.bitsaga.be</code>, the faucet and proof endpoints of Bitsaga Signet,
-        which nothing asks anything unless you start the multisig tutorial.</p>
-        <p><strong>It is a simulator.</strong> Treat every key it shows as public and
-        never type a seed phrase you rely on. Mainnet works here exactly as on
-        hardware, and that is the danger: on Mainnet this page exports the correct
-        mainnet account keys and produces real, valid mainnet signatures. It sits in
-        the device's own Settings and Advanced menus where it always has, neither
-        hidden nor recommended, and the multisig tutorial has no use for it: Bitsaga
-        Signet does the whole thing.</p>
-        <p>Source, and a build script that rebuilds this wallet from a pinned
-        upstream commit so you can check the claim above yourself:
+        <p>Nada sale de tu navegador. El monedero no tiene red de ningún tipo, y la
+        política de seguridad de contenido de la página nombra exactamente un único otro
+        origen al que puede llegar: <code>signet.bitsaga.be</code>, el faucet y los
+        endpoints de prueba de Bitsaga Signet, al que nada pregunta nada salvo que
+        arranques el tutorial multisig.</p>
+        <p><strong>Es un simulador.</strong> Trata cada clave que muestre como pública y
+        nunca escribas una frase semilla que uses de verdad. Mainnet funciona aquí
+        exactamente igual que en el hardware, y ese es el peligro: en Mainnet esta página
+        exporta las claves de cuenta mainnet correctas y produce firmas mainnet reales y
+        válidas. Está en los menús Ajustes y Avanzado del propio dispositivo donde
+        siempre ha estado, ni oculto ni recomendado, y el tutorial multisig no lo
+        necesita: Bitsaga Signet hace todo el proceso.</p>
+        <p>Código fuente, y un script de build que reconstruye este monedero desde un
+        commit fijado del proyecto original para que puedas comprobar tú mismo la
+        afirmación de arriba:
         <a href="https://github.com/bitsagarob/seedsigner-sim" rel="noopener">seedsigner-sim</a>.
-        <strong>Technical details</strong>, under the device, has the pin, both
-        published hashes and everything the wallet zip carries.
-        The device firmware lives in
+        <strong>Detalles técnicos</strong>, bajo el dispositivo, tiene el commit fijado,
+        ambos hashes publicados y todo lo que lleva el zip del monedero.
+        El firmware del dispositivo vive en
         <a href="https://github.com/bitsagarob/seedsigner-os" rel="noopener">seedsigner-os</a>.</p>
       </div>
     </details>
   </header>
   <!-- Above the device, so it is the first thing read and then scrolls out of
        the way, rather than competing with the device for room underneath it. -->
-  <p class="warn"><strong>Simulator.</strong> This is not a wallet and has no secure
-  element. Never enter a seed phrase you rely on; use a public test seed, a
-  throwaway phrase that holds no bitcoin and never will.</p>
+  <p class="warn"><strong>Simulador.</strong> Esto no es un monedero y no tiene secure
+  element. Nunca metas una frase semilla que uses de verdad; usa una seed de prueba
+  pública, una frase desechable que no tiene bitcoin ni lo tendrá jamás.</p>
   <div id="device"></div>
   <canvas id="screen" width="320" height="240"></canvas>
   <!-- Only offered where it is any use: on a phone, where the page around the
        device is what is making the device small. -->
-  <button type="button" id="fullscreen" aria-pressed="false">Fill the screen</button>
+  <button type="button" id="fullscreen" aria-pressed="false">Pantalla completa</button>
   <div id="running">
     <div class="running-row">
       <div id="firmware-switch" role="group" aria-label="Firmware">
@@ -291,53 +293,53 @@
        which the build writes beside the zip from the pins it built from, except
        the received hash, which comes from the worker. -->
   <details id="build">
-    <summary>Technical details</summary>
+    <summary>Detalles técnicos</summary>
     <div>
       <dl>
         <dt>Firmware</dt><dd id="build-firmware">…</dd>
-        <dt>Upstream</dt><dd><a id="build-repo" rel="noopener"></a></dd>
+        <dt>Proyecto original</dt><dd><a id="build-repo" rel="noopener"></a></dd>
         <dt>Tag</dt><dd><a id="build-tag" rel="noopener"></a></dd>
         <dt>Commit</dt><dd><a id="build-commit" class="hash" rel="noopener"></a></dd>
-        <dt>Interpreter</dt><dd>Pyodide <span id="build-pyodide"></span>, CPython compiled to WebAssembly</dd>
+        <dt>Intérprete</dt><dd>Pyodide <span id="build-pyodide"></span>, CPython compilado a WebAssembly</dd>
       </dl>
 
-      <h3>The wallet zip this page loaded, <span id="build-zip"></span></h3>
+      <h3>El zip del monedero que cargó esta página, <span id="build-zip"></span></h3>
       <dl>
-        <dt>published sha256</dt><dd class="hash" id="build-published"></dd>
-        <dt>what arrived here</dt><dd class="hash" id="build-computed"></dd>
-        <dt>published contents</dt><dd class="hash" id="build-contents"></dd>
+        <dt>sha256 publicado</dt><dd class="hash" id="build-published"></dd>
+        <dt>lo que llegó aquí</dt><dd class="hash" id="build-computed"></dd>
+        <dt>contenido publicado</dt><dd class="hash" id="build-contents"></dd>
       </dl>
       <p class="verdict" id="build-verdict" data-state="pending"></p>
-      <p class="limit">The page is checking itself, so this is a convenience and
-      not proof: only rebuilding the zip and comparing the hash is a check that
-      does not depend on this page being honest.</p>
+      <p class="limit">La página se está comprobando a sí misma, así que esto es una
+      comodidad y no una prueba: solo reconstruir el zip y comparar el hash es una
+      verificación que no depende de que esta página sea honesta.</p>
 
-      <h3>What is in it</h3>
-      <p>The upstream tree at the commit above, this
-      repository's stand-ins for the hardware a browser does not have, and these
-      pinned dependencies. Nothing else.</p>
+      <h3>Qué contiene</h3>
+      <p>El árbol del proyecto original en el commit de arriba, los sustitutos de este
+      repositorio para el hardware que un navegador no tiene, y estas dependencias
+      fijadas. Nada más.</p>
       <ul class="deps" id="build-deps"></ul>
 
-      <p class="links">Check it yourself:
-      <a href="https://github.com/bitsagarob/seedsigner-sim/blob/main/build/build-wallet-zip.sh" rel="noopener">rebuild the zip</a> ·
-      <a href="https://github.com/bitsagarob/seedsigner-sim/actions/workflows/reproducible-build.yml" rel="noopener">the same rebuild on a clean runner</a> ·
+      <p class="links">Compruébalo tú mismo:
+      <a href="https://github.com/bitsagarob/seedsigner-sim/blob/main/build/build-wallet-zip.sh" rel="noopener">reconstruir el zip</a> ·
+      <a href="https://github.com/bitsagarob/seedsigner-sim/actions/workflows/reproducible-build.yml" rel="noopener">la misma reconstrucción en un runner limpio</a> ·
       <a href="https://github.com/bitsagarob/seedsigner-sim/actions/workflows/test.yml" rel="noopener">tests</a> ·
-      <a href="https://github.com/bitsagarob/seedsigner-sim/actions/workflows/upstream-tests.yml" rel="noopener">upstream's own tests</a> ·
-      <a href="https://github.com/bitsagarob/seedsigner-sim" rel="noopener">source</a> ·
-      <a href="https://github.com/bitsagarob/seedsigner-sim/releases/latest" rel="noopener">latest release</a></p>
+      <a href="https://github.com/bitsagarob/seedsigner-sim/actions/workflows/upstream-tests.yml" rel="noopener">los propios tests del proyecto original</a> ·
+      <a href="https://github.com/bitsagarob/seedsigner-sim" rel="noopener">código fuente</a> ·
+      <a href="https://github.com/bitsagarob/seedsigner-sim/releases/latest" rel="noopener">último release</a></p>
     </div>
   </details>
-  <p id="status">starting…</p>
-  <p class="note">This is a simulator, and it starts on Testnet, so you can use it
-  with <a href="/signet">Bitsaga Signet</a>, our own test network. These are not real
-  bitcoin. They exist only on our test network, cannot be sold or sent to anyone, and
-  are worth nothing.</p>
+  <p id="status">iniciando…</p>
+  <p class="note">Esto es un simulador, y arranca en Testnet, así que puedes usarlo
+  con <a href="https://bitsaga.be/signet" rel="noopener">Bitsaga Signet</a>, nuestra propia red de pruebas. Estos no son
+  bitcoin de verdad. Existen solo en nuestra red de pruebas, no se pueden vender ni
+  enviar a nadie, y no valen nada.</p>
   <!-- Either one button, or, once it has been pressed, the tutorial itself.
        Nothing else is added to the page at rest. -->
   <div id="tutorial-slot"></div>
   <div id="cardtray"></div>
   <p class="hint"><a id="debuglink" href="?debug=1">debug</a></p>
-  <p class="hint">Click the device buttons, or use the keyboard: arrows move · Enter selects · 1 2 3 are the side buttons</p>
+  <p class="hint">Pulsa los botones del dispositivo, o usa el teclado: las flechas mueven · Enter selecciona · 1 2 3 son los botones laterales</p>
 
 <script src="seedsigner-device.js"></script>
 <script src="wallet-camera.js"></script>
@@ -362,9 +364,13 @@ const DEBUG = new URLSearchParams(location.search).has("debug");
 // and stays the default; "stock" is SeedSigner as its own project publishes it.
 // ?firmware=stock picks the other one. Checked against the list rather than
 // interpolated, so the URL cannot name a file to fetch.
-const FIRMWARES = ["smartcard", "stock"];
+// seed.kilombino.com adds a third, and makes it the default: "xbt", Kilombino's
+// SeedSigner fork with XBT mode (sighash 0x21, Bitcoin BLAKE2b) and JoinMarket
+// fidelity-bond spending. The multisig tutorial still opens the smartcard fork.
+const FIRMWARES = ["xbt", "smartcard", "stock"];
 const asked = new URLSearchParams(location.search).get("firmware");
-const FIRMWARE = FIRMWARES.includes(asked) ? asked : FIRMWARES[0];
+const FIRMWARE = FIRMWARES.includes(asked) ? asked
+  : (new URLSearchParams(location.search).has("tutorial") ? "smartcard" : FIRMWARES[0]);
 
 // The multisig tutorial. It drives the device, the cards and the camera, so it
 // needs a wallet that has just booted and three cards nobody has touched, which
@@ -378,19 +384,28 @@ const TUTORIAL = new URLSearchParams(location.search).has("tutorial")
 // device. Neither is called "SeedSigner" on its own: one is a third party fork
 // of it, and saying so is the whole point of naming them at all.
 const FIRMWARE_INFO = {
+  xbt: {
+    button: "Fork XBT",
+    says: "Corriendo el fork XBT de SeedSigner (Kilombino/seedsigner, v0.8.7-xbt1): " +
+          "SeedSigner 0.8.7 con modo XBT (firma con sighash 0x21, solo válida en " +
+          "Bitcoin BLAKE2b) y gasto de fidelity bonds de JoinMarket. Es un fork no " +
+          "oficial, no afiliado al proyecto SeedSigner.",
+    panel: "el fork XBT de SeedSigner de Kilombino, un fork no oficial que añade el " +
+           "modo XBT (sighash 0x21 para Bitcoin BLAKE2b) y el gasto de fidelity bonds",
+  },
   smartcard: {
-    button: "Smartcard fork",
-    says: "Running the 3rdIteration smartcard fork of SeedSigner, tag " +
-          "SeSi-0.8.7+ShSi-B11, which adds SeedKeeper and Satochip cards.",
-    panel: "the 3rdIteration fork of SeedSigner, a third party fork that adds " +
-           "SeedKeeper and Satochip cards",
+    button: "Fork smartcard",
+    says: "Corriendo el fork smartcard de SeedSigner de 3rdIteration, tag " +
+          "SeSi-0.8.7+ShSi-B11, que añade tarjetas SeedKeeper y Satochip.",
+    panel: "el fork de SeedSigner de 3rdIteration, un fork de terceros que añade " +
+           "tarjetas SeedKeeper y Satochip",
   },
   stock: {
-    button: "Stock SeedSigner",
-    says: "Running stock SeedSigner 0.8.7, the firmware a plain SeedSigner " +
-          "runs. It has no smartcard support, so there is no card tray.",
-    panel: "SeedSigner as its own project publishes it, which is what a plain " +
-           "device runs",
+    button: "SeedSigner estándar",
+    says: "Corriendo SeedSigner estándar 0.8.7, el firmware que corre un SeedSigner " +
+          "normal. No tiene soporte de smartcard, así que no hay bandeja de tarjetas.",
+    panel: "SeedSigner tal como lo publica su propio proyecto, que es lo que corre un " +
+           "dispositivo normal",
   },
 };
 
@@ -453,16 +468,16 @@ function showVerdict() {
   panelText("build-computed", receivedHash || "not loaded yet");
   if (!publishedHash || !receivedHash) {
     el.dataset.state = "pending";
-    el.textContent = "The zip is hashed as the wallet loads it, so this fills in "
-                   + "while the wallet is starting.";
+    el.textContent = "El zip se hashea mientras el monedero lo carga, así que esto se "
+                   + "rellena mientras el monedero arranca.";
     return;
   }
   const match = publishedHash === receivedHash;
   el.dataset.state = match ? "match" : "differs";
   el.textContent = match
-    ? "They match: the wallet zip this page loaded is the published build, byte for byte."
-    : "They differ: the wallet zip this page loaded is not the published build. "
-      + "Do not trust anything this page shows you.";
+    ? "Coinciden: el zip del monedero que cargó esta página es el build publicado, byte a byte."
+    : "Difieren: el zip del monedero que cargó esta página no es el build publicado. "
+      + "No confíes en nada de lo que te muestre esta página.";
 }
 
 // A clone URL is not a page anyone can open, so the links are built off the
@@ -512,8 +527,8 @@ fetch(`wallet-${FIRMWARE}.build-info.json`)
   .catch((error) => {
     // Said plainly rather than left blank: a panel that cannot describe the
     // build should not look like a panel describing a build with nothing in it.
-    panelText("build-firmware", `build-info.json for ${FIRMWARE} is not being `
-                              + `served, so this panel cannot say what was built (${error.message})`);
+    panelText("build-firmware", `build-info.json para ${FIRMWARE} no se está `
+                              + `sirviendo, así que este panel no puede decir qué se construyó (${error.message})`);
   });
 
 // [0] = has a key been posted, [1] = which key. The worker blocks on [0].
@@ -587,7 +602,7 @@ const fullscreenButton = document.getElementById("fullscreen");
 function setSolo(on) {
   document.body.classList.toggle("solo", on);
   fullscreenButton.setAttribute("aria-pressed", String(on));
-  fullscreenButton.textContent = on ? "Back to the page" : "Fill the screen";
+  fullscreenButton.textContent = on ? "Volver a la página" : "Pantalla completa";
 }
 fullscreenButton.addEventListener("click", () => {
   setSolo(!document.body.classList.contains("solo"));
@@ -603,7 +618,7 @@ document.addEventListener("keydown", (event) => {
 let tutorial = null;
 
 if (!window.crossOriginIsolated) {
-  statusEl.textContent = "this page needs cross-origin isolation, which the server is not sending";
+  statusEl.textContent = "esta página necesita aislamiento cross-origin, que el servidor no está enviando";
   statusEl.className = "err";
 } else {
   const worker = new Worker("wallet-worker.js");
@@ -642,10 +657,10 @@ if (!window.crossOriginIsolated) {
       // The wallet's own settings, read back out of them by the worker. The
       // page holds no copy and computes nothing: it repeats what it was told,
       // and says nothing at all until it has been told something.
-      networkEl.textContent = "Bitcoin network: " + event.data.name;
+      networkEl.textContent = "Red Bitcoin: " + event.data.name;
       document.body.classList.toggle("mainnet", event.data.mainnet);
     } else if (type === "error") {
-      statusEl.textContent = "failed: " + event.data.message;
+      statusEl.textContent = "falló: " + event.data.message;
       statusEl.className = "err";
     }
   };
