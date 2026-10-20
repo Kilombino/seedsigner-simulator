@@ -48,15 +48,15 @@ self.onmessage = async (event) => {
 };
 
 async function boot(width, height) {
-  post("status", { message: "loading python…" });
+  post("status", { message: "cargando python…" });
   pyodide = await loadPyodide({ indexURL: "pyodide/" });
 
-  post("status", { message: "loading libraries…" });
+  post("status", { message: "cargando librerías…" });
   // numpy is never reachable: decode_qr imports it inside a try that starts with
   // "import cv2", and opencv is not in this list, so np is None either way.
   await pyodide.loadPackage(["Pillow", "pycryptodome", "cryptography"]);
 
-  post("status", { message: "unpacking wallet…" });
+  post("status", { message: "descomprimiendo el monedero…" });
   // One zip per firmware, each built by build/build-wallet-zip.sh from its own
   // section of UPSTREAM and published with its own pair of hashes.
   const zip = await (await fetch(`wallet-${firmware}.zip`)).arrayBuffer();
@@ -80,7 +80,7 @@ async function boot(width, height) {
   const qrShim = await (await fetch("browser_qr.py")).text();
   pyodide.FS.writeFile("/wallet/browser_qr.py", qrShim);
 
-  post("status", { message: "starting wallet…" });
+  post("status", { message: "arrancando el monedero…" });
 
   // Frames come back through this callback rather than being polled.
   pyodide.globals.set("js_frame_sink", (bytes) => {
@@ -174,7 +174,7 @@ sys.path.insert(0, "/wallet")
 import os, json
 os.chdir("/wallet")
 with open("/wallet/settings.json", "w") as handle:
-    json.dump({"display_config": "st7789_320x240", "network": "T"}, handle)
+    json.dump({"display_config": "st7789_320x240", "network": "T", "locale": "es"}, handle)
 
 # --- no real threads in the browser -----------------------------------------
 class _NoThread:

@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.kilombino.seedsignersim",
+      "sha256_cert_fingerprints": [
+        "E0:61:19:5D:E1:68:0C:ED:E9:38:BA:A5:49:79:F5:25:8A:81:48:91:00:91:B4:A8:88:D0:BB:51:70:FF:88:EC"
+      ]
+    }
+  }
+]

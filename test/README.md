@@ -29,7 +29,8 @@ downloads the Pyodide runtime and builds both wallet zips from their pinned
 upstream commits, which takes a few minutes; later runs reuse all of it.
 
 A subset, by substring on the step name -- the names are `leak_scan`, `cards`,
-`tray_layout`, `device`, `firmware`, `build_info`, `settings`, `scan_seedqr`, `scan_compact`,
+`tray_layout`, `device`, `firmware`, `build_info`, `settings`, `entropy`,
+`stock_entropy`, `scan_seedqr`, `scan_compact`,
 `scan_native`, `stock_scan_seedqr`, `stock_scan_compact`, `stock_scan_native`,
 `cards_browser`, `cards_seed`, `cards_seedkeeper`, `cards_descriptor`, `mainnet`:
 
@@ -37,7 +38,9 @@ A subset, by substring on the step name -- the names are `leak_scan`, `cards`,
     python3 test/run.py stock         # the three stock-firmware scans
 
 The three scan tests run once per firmware: the smartcard fork the simulator has
-always run, and stock SeedSigner. The card tests are smartcard only, because the
+always run, and stock SeedSigner. So does the entropy test, which drives the
+wallet's other camera path -- the single still image entropy takes, which stock
+reaches through picamera and the fork does not. The card tests are smartcard only, because the
 menus they drive do not exist in stock. `SIM_FIRMWARE` picks the firmware for a
 single test file run by hand; `test_firmware.py` ignores it and visits both by
 name, because switching between them is what it is about.

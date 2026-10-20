@@ -52,6 +52,19 @@ class IsolatedHandler(SimpleHTTPRequestHandler):
         self.send_header("Cross-Origin-Opener-Policy", "same-origin")
         self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
         self.send_header("Cross-Origin-Resource-Policy", "same-origin")
+        # The camera is the QR scanner, so it has to be allowed to this origin.
+        # Sent here because a proxy in front of this server may otherwise add a
+        # blanket `camera=()` of its own, which disables getUserMedia outright:
+        # the scan screen then fails with no permission prompt at all, which
+        # looks like a broken camera rather than a policy.
+        self.send_header("Permissions-Policy",
+                         "camera=(self), microphone=(), geolocation=()")
+        # The rest of what a security-headers proxy would have added, sent from
+        # here so that turning such a proxy off to fix the camera does not
+        # quietly cost the page everything else it was adding.
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
+        self.send_header("X-Frame-Options", "SAMEORIGIN")
         # A test that passes against a cached copy of the file it is meant to be
         # testing has proved nothing.
         self.send_header("Cache-Control", "no-store")

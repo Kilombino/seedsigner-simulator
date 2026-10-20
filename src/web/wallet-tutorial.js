@@ -57,8 +57,8 @@
   // nothing here is bidding for space; this is simply above the relay minimum.
   var FEE = 1000n;
 
-  var NOT_REAL = "These are not real bitcoin. They exist only on our test "
-               + "network, cannot be sold or sent to anyone, and are worth nothing.";
+  var NOT_REAL = "Estos no son bitcoin de verdad. Existen solo en nuestra red de "
+               + "pruebas, no se pueden vender ni enviar a nadie, y no valen nada.";
 
   // How fast self driving goes.
   //
@@ -206,14 +206,14 @@
     this.bar.appendChild(this.barFill);
 
     var head = element("div", "tut-head");
-    head.appendChild(element("h2", null, "A 2 of 3 on Bitsaga Signet"));
+    head.appendChild(element("h2", null, "Un 2 de 3 en Bitsaga Signet"));
     this.controls = element("div", "tut-controls");
     head.appendChild(this.controls);
 
-    this.playButton = this.control("Play", this.togglePlay.bind(this));
-    this.stepButton = this.control("Step", this.stepOn.bind(this));
-    this.handsButton = this.control("I will drive", this.toggleHands.bind(this));
-    this.againButton = this.control("Start again", this.restart.bind(this));
+    this.playButton = this.control("Reproducir", this.togglePlay.bind(this));
+    this.stepButton = this.control("Paso", this.stepOn.bind(this));
+    this.handsButton = this.control("Conduzco yo", this.toggleHands.bind(this));
+    this.againButton = this.control("Empezar de nuevo", this.restart.bind(this));
 
     this.stepText = element("p", "tut-step");
     this.sayText = element("p", "tut-say");
@@ -232,7 +232,7 @@
     phoneScreen.appendChild(this.canvas);
     phoneScreen.appendChild(this.face);
     phone.appendChild(phoneScreen);
-    phone.appendChild(element("p", "tut-phone-name", "the coordinator"));
+    phone.appendChild(element("p", "tut-phone-name", "el coordinador"));
 
     var flow = element("div", "tut-flow");
     this.arrow = element("p", "tut-arrow");
@@ -240,14 +240,14 @@
     flow.appendChild(this.arrow);
     flow.appendChild(this.caption);
     flow.appendChild(element("p", "tut-honest",
-      "The scanning is done for you. Nothing here uses your webcam: the "
-      + "device's camera is pointed at the phone's screen and the phone's at "
-      + "the device's, and both screens are on this page."));
+      "El escaneo se hace por ti. Aquí nada usa tu webcam: la cámara del "
+      + "dispositivo apunta a la pantalla del teléfono y la del teléfono a la "
+      + "del dispositivo, y ambas pantallas están en esta página."));
     swap.appendChild(phone);
     swap.appendChild(flow);
 
     this.fold = element("details", "tut-fold");
-    this.fold.appendChild(element("summary", null, "Show the details"));
+    this.fold.appendChild(element("summary", null, "Mostrar los detalles"));
     this.detailList = element("dl");
     this.fold.appendChild(this.detailList);
 
@@ -263,25 +263,25 @@
 
     // What is behind every number below, said once, where somebody looking for
     // it will find it and nobody else has to read it.
-    this.detail("network", "Bitsaga Signet, our own Bitcoin test network. "
-      + "Testnet address prefixes, a block every thirty seconds, and a faucet. "
+    this.detail("red", "Bitsaga Signet, nuestra propia red de pruebas de Bitcoin. "
+      + "Prefijos de dirección de Testnet, un bloque cada treinta segundos, y un faucet. "
       + NOT_REAL, true);
-    this.detail("mainnet", "Mainnet works here exactly as on hardware, and that "
-      + "is the danger: on Mainnet this page exports the correct mainnet account "
-      + "keys and produces real, valid mainnet signatures, so any seed you type "
-      + "into it should be treated as public. Nothing in this tutorial needs it.",
+    this.detail("mainnet", "Mainnet funciona aquí exactamente igual que en el hardware, "
+      + "y ese es el peligro: en Mainnet esta página exporta las claves de cuenta mainnet "
+      + "correctas y produce firmas mainnet reales y válidas, así que cualquier seed que "
+      + "escribas en ella debe tratarse como pública. Nada en este tutorial la necesita.",
       true);
     SEEDS.forEach(function (seed) {
-      this.detail("Card " + seed.card + " test seed", seed.words, true);
+      this.detail("Seed de prueba de la tarjeta " + seed.card, seed.words, true);
       // The bytes actually held up to the camera: a SeedQR is the twelve words
       // as their four digit positions in the BIP39 wordlist, nothing more.
-      this.detail("Card " + seed.card + " SeedQR payload", seed.seedqr);
+      this.detail("Payload SeedQR de la tarjeta " + seed.card, seed.seedqr);
     }, this);
 
     this.painter = this.canvas.getContext("2d", { willReadFrequently: true });
     this.clearPhone();
-    this.showFace("Bitsaga Signet coordinator",
-                  "Nothing built yet. Press Play, or take the buttons yourself.");
+    this.showFace("Coordinador de Bitsaga Signet",
+                  "Aún no hay nada construido. Pulsa Reproducir, o toma tú los botones.");
     this.introduce();
     // A frame the capture stream can always find something new in, so the
     // device's camera never sits on a stale picture.
@@ -305,17 +305,17 @@
   };
 
   Tutorial.prototype.introduce = function () {
-    this.stepText.textContent = "Ready";
+    this.stepText.textContent = "Listo";
     this.sayText.textContent =
-      "Three test seeds go onto three cards, the three public keys come back "
-      + "off them, and those keys make one wallet that needs any two of the "
-      + "three to spend. Then coins from the Bitsaga Signet faucet, and a spend "
-      + "signed twice. " + NOT_REAL;
+      "Tres seeds de prueba van a tres tarjetas, las tres claves públicas vuelven "
+      + "de ellas, y esas claves forman un monedero que necesita dos cualesquiera "
+      + "de las tres para gastar. Después monedas del faucet de Bitsaga Signet, y un "
+      + "gasto firmado dos veces. " + NOT_REAL;
     this.doText.textContent =
-      "Holding all three keys on one device is fine for a demo and wrong for "
-      + "real funds. The point of multisig is keys in different places and "
-      + "different hands, so that losing one, or someone else finding one, is "
-      + "survivable.";
+      "Tener las tres claves en un solo dispositivo está bien para una demo y mal "
+      + "para fondos reales. La gracia del multisig es tener las claves en sitios "
+      + "distintos y manos distintas, para que perder una, o que otro encuentre una, "
+      + "sea superable.";
   };
 
   // ------------------------------------------------------------ the log oracle
@@ -363,7 +363,7 @@
         }
         if (value) return resolve(value);
         if (Date.now() > deadline) {
-          return reject(new Error("nothing happened while waiting for " + what));
+          return reject(new Error("no ocurrió nada esperando a " + what));
         }
         setTimeout(tick, 150);
       })();
@@ -446,7 +446,7 @@
 
   Tutorial.prototype.transfer = function (direction, caption) {
     this.arrow.textContent = direction === "in"
-      ? "Phone  →  device" : "Device  →  phone";
+      ? "Teléfono  →  dispositivo" : "Dispositivo  →  teléfono";
     this.caption.textContent = caption;
   };
 
@@ -548,11 +548,11 @@
   };
 
   Tutorial.prototype.reflect = function () {
-    this.playButton.textContent = this.paused ? "Play" : "Pause";
+    this.playButton.textContent = this.paused ? "Reproducir" : "Pausa";
     this.playButton.classList.toggle("on", this.mode === "self" && !this.paused);
     // Stepping through is what hands on already is, so it is not offered twice.
     this.stepButton.disabled = this.mode === "hands";
-    this.handsButton.textContent = this.mode === "hands" ? "Let it drive" : "I will drive";
+    this.handsButton.textContent = this.mode === "hands" ? "Que conduzca él" : "Conduzco yo";
     this.handsButton.classList.toggle("on", this.mode === "hands");
     this.setProgress(this.fraction || 0);
   };
@@ -569,7 +569,7 @@
   Tutorial.prototype.gate = function () {
     var self = this;
     if (!this.paused) return Promise.resolve();
-    return this.poll(86400000, function () { return !self.paused; }, "the Play button");
+    return this.poll(86400000, function () { return !self.paused; }, "el botón Reproducir");
   };
 
   // ------------------------------------------------------------ the runner
@@ -650,10 +650,10 @@
     this.endTransfer();
     this.verdict.dataset.state = "bad";
     this.verdict.textContent = error.message;
-    this.doText.textContent = "This step did not get where it was going. Try it "
-      + "again, or take the buttons yourself.";
+    this.doText.textContent = "Este paso no llegó a donde iba. Inténtalo "
+      + "de nuevo, o toma tú los botones.";
     if (!this.retryButton) {
-      this.retryButton = this.control("Try again", function () {
+      this.retryButton = this.control("Reintentar", function () {
         var step = self.at, action = self.atAction;
         self.verdict.textContent = "";
         self.verdict.removeAttribute("data-state");
@@ -699,7 +699,7 @@
     function inserted(index) {
       return function () {
         return t.poll(60000, function () { return t.tray.inserted() === index; },
-                      index < 0 ? "the card to come out" : "the card to go in");
+                      index < 0 ? "que salga la tarjeta" : "que entre la tarjeta");
       };
     }
 
@@ -722,8 +722,8 @@
      */
     function homeAgain() {
       return act(
-        "Press left and then select, as many times as it takes, until the "
-        + "device is back on its home screen.",
+        "Pulsa izquierda y luego seleccionar, tantas veces como haga falta, hasta "
+        + "que el dispositivo vuelva a su pantalla de inicio.",
         function () {
           var tries = 0;
           function climb() {
@@ -738,7 +738,7 @@
         function () {
           return t.poll(120000, function () {
             return t.currentScreen() === "MainMenuScreen";
-          }, "the home screen");
+          }, "la pantalla de inicio");
         });
     }
 
@@ -753,8 +753,8 @@
      */
     function advance(target, tries, instruct) {
       return act(
-        instruct || ("Keep pressing the select button until the device reaches "
-                     + target + "."),
+        instruct || ("Sigue pulsando el botón de seleccionar hasta que el dispositivo "
+                     + "llegue a " + target + "."),
         function () {
           var attempts = 0;
           var previous = null;
@@ -790,15 +790,15 @@
      */
     function forgetTheSeed(card) {
       return [
-        act("Make the device forget the seed: press right to Seeds, then select.",
+        act("Haz que el dispositivo olvide la seed: pulsa derecha hasta Seeds, luego selecciona.",
             keys(["ArrowRight", "Enter"]), screenIs("ButtonListScreen")),
-        act("Select the loaded seed.", keys(["Enter"]), screenIs("SeedOptionsScreen")),
-        act("Down five times to Discard, then select.",
+        act("Selecciona la seed cargada.", keys(["Enter"]), screenIs("SeedOptionsScreen")),
+        act("Baja cinco veces hasta Discard, luego selecciona.",
             keys(["ArrowDown", "ArrowDown", "ArrowDown", "ArrowDown", "ArrowDown", "Enter"]),
             screenIs("WarningScreen")),
-        act("Confirm: down once, then select.",
+        act("Confirma: baja una vez, luego selecciona.",
             keys(["ArrowDown", "Enter"]), screenIs("MainMenuScreen")),
-        act("Take " + card + " out of the reader.",
+        act("Saca la " + card + " del lector.",
             function () { t.tray.eject(); }, inserted(-1)),
       ];
     }
@@ -856,15 +856,15 @@
             // Real sub-step progress: codes actually read, out of the number
             // this transfer turned out to have.
             if (collector.parts()) {
-              t.caption.textContent = caption + " Code " + collector.have()
-                                    + " of " + collector.parts() + ".";
+              t.caption.textContent = caption + " Código " + collector.have()
+                                    + " de " + collector.parts() + ".";
               t.subProgress(collector.have() / collector.parts());
             }
             if (!collector.done()) return false;
             return handle(context, collector) || true;
           }
           return handle(context, text) || true;
-        }, "the QR on the device's screen").then(function (value) {
+        }, "el QR en la pantalla del dispositivo").then(function (value) {
           t.endTransfer();
           return value;
         });
@@ -875,51 +875,51 @@
 
     function seedOntoCard(i) {
       var seed = SEEDS[i];
-      var card = "Card " + seed.card;
+      var card = "Tarjeta " + seed.card;
       return step(
-        "Put a test seed on " + card,
-        "The seed is scanned in, written to the card, and then forgotten by the "
-        + "device, so from here on the only copy is on the card. The card is "
-        + "blank, so it asks for a PIN and then takes one twice: that is the "
-        + "card's own ceremony, and it is real here.",
+        "Poner una seed de prueba en la " + card,
+        "La seed se escanea, se escribe en la tarjeta, y luego el dispositivo la "
+        + "olvida, así que de aquí en adelante la única copia está en la tarjeta. La "
+        + "tarjeta está en blanco, así que pide un PIN y luego lo toma dos veces: esa "
+        + "es la ceremonia propia de la tarjeta, y aquí es real.",
         [
-          act("Click " + card + " in the tray to put it in the reader.",
+          act("Pulsa la " + card + " en la bandeja para meterla en el lector.",
               function () { t.tray.insert(i); }, inserted(i)),
-          act("Press the select button to open Scan.",
+          act("Pulsa el botón de seleccionar para abrir Escanear.",
               keys(["Enter"]), screenIs("ScanScreen")),
-          handUp("The twelve word test seed for " + card + ", as a SeedQR.",
+          handUp("La seed de prueba de doce palabras de la " + card + ", como SeedQR.",
                  seed.seedqr, screenIs("SeedFinalizeScreen", 240000)),
-          act("The device shows the seed's fingerprint. Select for Done.",
+          act("El dispositivo muestra la huella de la seed. Selecciona para Finalizar.",
               keys(["Enter"]), screenIs("SeedOptionsScreen")),
-          act("Go down three times to Backup seed, then select.",
+          act("Baja tres veces hasta Respaldar semilla, luego selecciona.",
               keys(["ArrowDown", "ArrowDown", "ArrowDown", "Enter"]),
               screenIs("ButtonListScreen")),
-          act("Go down once to To SeedKeeper, then select.",
+          act("Baja una vez hasta To SeedKeeper, luego selecciona.",
               keys(["ArrowDown", "Enter"]), screenIs("SeedAddPassphraseScreen")),
-          act("The card is asked for its PIN. Press select four times, then the "
-              + "third side button to save.",
+          act("A la tarjeta se le pide su PIN. Pulsa seleccionar cuatro veces, luego "
+              + "el tercer botón lateral para guardar.",
               pin(), screenIs("WarningScreen")),
-          act("The card has no PIN yet. Select to give it one.",
+          act("La tarjeta aún no tiene PIN. Selecciona para darle uno.",
               keys(["Enter"]), screenIs("SeedAddPassphraseScreen")),
-          act("Choose the PIN: select four times, then the third side button.",
+          act("Elige el PIN: selecciona cuatro veces, luego el tercer botón lateral.",
               pin(), screenIs("SeedAddPassphraseScreen")),
-          act("Type it once more to confirm it.",
+          act("Escríbelo una vez más para confirmarlo.",
               pin(), screenIs("LargeIconStatusScreen")),
-          act("The card is set up. Select to carry on.",
+          act("La tarjeta está configurada. Selecciona para continuar.",
               keys(["Enter"]), screenIs("SeedAddPassphraseScreen")),
-          act("Accept the label the device offers, which is the seed's own "
-              + "fingerprint: the third side button.",
+          act("Acepta la etiqueta que ofrece el dispositivo, que es la propia huella "
+              + "de la seed: el tercer botón lateral.",
               keys(["3"]),
               logged("\\[card\\] Card " + seed.card + " stored secret", 240000)),
           act(null, null, screenIs("LargeIconStatusScreen")),
-          act("The seed is on the card. Select to finish.",
+          act("La seed está en la tarjeta. Selecciona para terminar.",
               keys(["Enter"]), screenIs("SeedOptionsScreen")),
-          act("Now make the device forget it: down five times to Discard, then select.",
+          act("Ahora haz que el dispositivo la olvide: baja cinco veces hasta Descartar, luego selecciona.",
               keys(["ArrowDown", "ArrowDown", "ArrowDown", "ArrowDown", "ArrowDown", "Enter"]),
               screenIs("WarningScreen")),
-          act("Confirm: down once, then select.",
+          act("Confirma: baja una vez, luego selecciona.",
               keys(["ArrowDown", "Enter"]), screenIs("MainMenuScreen")),
-          act("Take " + card + " back out of the reader.",
+          act("Vuelve a sacar la " + card + " del lector.",
               function () { t.tray.eject(); }, inserted(-1)),
         ]);
     }
@@ -928,48 +928,48 @@
 
     function keyOffCard(i) {
       var seed = SEEDS[i];
-      var card = "Card " + seed.card;
+      var card = "Tarjeta " + seed.card;
       return step(
-        "Read " + card + "'s public key",
-        "The card gives the seed back, the device works out the account's "
-        + "public key, and shows it as a QR for the coordinator to photograph. "
-        + "A public key is not a spending key: it can make addresses and check "
-        + "them, and it can do nothing else.",
+        "Leer la clave pública de la " + card,
+        "La tarjeta devuelve la seed, el dispositivo calcula la clave pública de la "
+        + "cuenta, y la muestra como un QR para que el coordinador la fotografíe. "
+        + "Una clave pública no es una clave de gasto: puede crear direcciones y "
+        + "comprobarlas, y nada más.",
         [
-          act("Click " + card + " to put it in the reader.",
+          act("Pulsa la " + card + " para meterla en el lector.",
               function () { t.tray.insert(i); }, inserted(i)),
-          act("Press right to Seeds, then select.",
+          act("Pulsa derecha hasta Semillas, luego selecciona.",
               keys(["ArrowRight", "Enter"]), screenIs("ButtonListScreen")),
-          act("Down three times to From SeedKeeper, then select.",
+          act("Baja tres veces hasta From SeedKeeper, luego selecciona.",
               keys(["ArrowDown", "ArrowDown", "ArrowDown", "Enter"]),
               screenIs("SeedAddPassphraseScreen")),
-          act("Type the card's PIN: select four times, then the third side button.",
+          act("Escribe el PIN de la tarjeta: selecciona cuatro veces, luego el tercer botón lateral.",
               pin(), screenIs("ButtonListScreen", 240000)),
-          act("Select the one secret the card is carrying.",
+          act("Selecciona el único secreto que lleva la tarjeta.",
               keys(["Enter"]),
               logged("\\[card\\] Card " + seed.card + " exporting secret", 240000)),
           act(null, null, screenIs("SeedFinalizeScreen", 240000)),
-          act("Select for Done.", keys(["Enter"]), screenIs("SeedOptionsScreen")),
-          act("Down once to Export Xpub, then select.",
+          act("Selecciona para Finalizar.", keys(["Enter"]), screenIs("SeedOptionsScreen")),
+          act("Baja una vez hasta Exportar Xpub, luego selecciona.",
               keys(["ArrowDown", "Enter"]), screenIs("ButtonListScreen")),
-          act("Down once to Multisig, then select.",
+          act("Baja una vez hasta Multifirma, luego selecciona.",
               keys(["ArrowDown", "Enter"]), screenIs("ButtonListScreen")),
-          act("Choose Native Segwit, the first in the list.",
+          act("Elige Native Segwit, el primero de la lista.",
               keys(["Enter"]), screenIs("ButtonListScreen")),
-          act("Down once to Static, so the key comes as one code, then select.",
+          act("Baja una vez hasta Estático, para que la clave venga en un solo código, luego selecciona.",
               keys(["ArrowDown", "Enter"]), settle(1500)),
           // A privacy warning and a details page may sit between here and the
           // QR, depending on settings, so this is driven by where it has
           // arrived rather than by a fixed number of presses.
           advance("QRDisplayScreen", 5),
-          readOff(card + "'s account public key, photographed off the device's screen.",
+          readOff("La clave pública de cuenta de la " + card + ", fotografiada de la pantalla del dispositivo.",
                   function (context, text) {
                     context.state.keys = context.state.keys || [];
                     context.state.keys[i] = text;
-                    t.detail(card + " account key", text);
+                    t.detail(card + " clave de cuenta", text);
                     return true;
                   }),
-          act("Any button leaves the QR.", keys(["Enter"]), screenIs("MainMenuScreen")),
+          act("Cualquier botón sale del QR.", keys(["Enter"]), screenIs("MainMenuScreen")),
         ].concat(forgetTheSeed(card)));
     }
 
@@ -977,50 +977,50 @@
 
     function signWith(i) {
       var seed = SEEDS[i];
-      var card = "Card " + seed.card;
+      var card = "Tarjeta " + seed.card;
       return step(
-        "Sign with " + card,
-        "The coordinator hands the unfinished transaction to the device, the "
-        + "device shows what it would be signing, and the card's seed signs it. "
-        + "The signature comes back as a QR. One signature is not enough to "
-        + "move anything, which is the point of a 2 of 3.",
+        "Firmar con la " + card,
+        "El coordinador entrega la transacción sin terminar al dispositivo, el "
+        + "dispositivo muestra qué firmaría, y la seed de la tarjeta la firma. "
+        + "La firma vuelve como un QR. Una sola firma no basta para mover nada, "
+        + "que es la gracia de un 2 de 3.",
         [
-          act("Click " + card + " to put it in the reader.",
+          act("Pulsa la " + card + " para meterla en el lector.",
               function () { t.tray.insert(i); }, inserted(i)),
-          act("Press right to Seeds, then select.",
+          act("Pulsa derecha hasta Semillas, luego selecciona.",
               keys(["ArrowRight", "Enter"]), screenIs("ButtonListScreen")),
-          act("Down three times to From SeedKeeper, then select.",
+          act("Baja tres veces hasta From SeedKeeper, luego selecciona.",
               keys(["ArrowDown", "ArrowDown", "ArrowDown", "Enter"]),
               screenIs("SeedAddPassphraseScreen")),
-          act("Type the card's PIN.", pin(), screenIs("ButtonListScreen", 240000)),
-          act("Select the secret on the card.", keys(["Enter"]),
+          act("Escribe el PIN de la tarjeta.", pin(), screenIs("ButtonListScreen", 240000)),
+          act("Selecciona el secreto de la tarjeta.", keys(["Enter"]),
               logged("\\[card\\] Card " + seed.card + " exporting secret", 240000)),
           act(null, null, screenIs("SeedFinalizeScreen", 240000)),
-          act("Select for Done.", keys(["Enter"]), screenIs("SeedOptionsScreen")),
+          act("Selecciona para Finalizar.", keys(["Enter"]), screenIs("SeedOptionsScreen")),
           homeAgain(),
-          act("Press select to open Scan.", keys(["Enter"]), screenIs("ScanScreen")),
-          handUpFrames("The transaction to be signed, split across several codes "
-                       + "because one would be too dense to read.",
+          act("Pulsa seleccionar para abrir Escanear.", keys(["Enter"]), screenIs("ScanScreen")),
+          handUpFrames("La transacción a firmar, repartida en varios códigos "
+                       + "porque uno solo sería demasiado denso para leer.",
                        function (context) { return context.state.frames; },
                        function () {
                          return t.poll(300000, function () {
                            var screen = t.currentScreen();
                            return screen && screen !== "ScanScreen";
-                         }, "the device to take the transaction");
+                         }, "que el dispositivo tome la transacción");
                        }),
           advance("PSBTFinalizeScreen", 10,
-                  "Work through the review screens, pressing select, until the "
-                  + "device offers to sign."),
-          act("Approve it.", keys(["Enter"]), screenIs("QRDisplayScreen", 240000)),
-          readOff("The signature from " + card + ", photographed off the device's screen.",
+                  "Recorre las pantallas de revisión, pulsando seleccionar, hasta que "
+                  + "el dispositivo ofrezca firmar."),
+          act("Apruébala.", keys(["Enter"]), screenIs("QRDisplayScreen", 240000)),
+          readOff("La firma de la " + card + ", fotografiada de la pantalla del dispositivo.",
                   function (context, collector) {
                     var psbt = C.toBase64(collector.psbt());
                     context.state.signed = context.state.signed || [];
                     context.state.signed.push(psbt);
-                    t.detail(card + " signed PSBT", psbt);
+                    t.detail(card + " PSBT firmada", psbt);
                     return true;
                   }, 300000),
-          act("Any button leaves the QR.", keys(["Enter"]),
+          act("Cualquier botón sale del QR.", keys(["Enter"]),
               function () {
                 return t.poll(60000, function () {
                   return t.currentScreen() === "MainMenuScreen";
@@ -1048,14 +1048,14 @@
     for (var k = 0; k < 3; k++) steps.push(keyOffCard(k));
 
     steps.push(step(
-      "Build the 2 of 3",
-      "Three public keys make one wallet. Any two of the three can spend from "
-      + "it; any one of them alone can do nothing. The description of that "
-      + "wallet is called a descriptor, and it is not a secret.",
+      "Construir el 2 de 3",
+      "Tres claves públicas forman un monedero. Dos cualesquiera de las tres pueden "
+      + "gastar de él; una sola de ellas no puede hacer nada. La descripción de ese "
+      + "monedero se llama descriptor, y no es un secreto.",
       [
         coordinator(function (context) {
-          t.showFace("Building the wallet", "Sorting three public keys into one "
-                     + "2 of 3 and working out an address to receive at.");
+          t.showFace("Construyendo el monedero", "Ordenando tres claves públicas en un "
+                     + "2 de 3 y calculando una dirección donde recibir.");
           // A fresh address, the way a wallet hands out a fresh one every time
           // rather than reusing the first. It also keeps two visitors doing this
           // at once out of each other's way: the three test seeds are public and
@@ -1068,80 +1068,80 @@
             return C.deriveAddress(wallet, 0, context.state.index);
           }).then(function (receive) {
             context.state.receive = receive;
-            t.detail("receive address", receive.address + "  (receive number "
+            t.detail("dirección de recepción", receive.address + "  (número de recepción "
                      + context.state.index + ")");
             t.detail("witness script", C.hex(receive.witnessScript));
             t.verdict.dataset.state = "good";
-            t.verdict.textContent = "The wallet is built. Its address for this "
-              + "run is " + receive.address;
-            t.showFace("2 of 3 wallet", receive.address);
+            t.verdict.textContent = "El monedero está construido. Su dirección para esta "
+              + "ejecución es " + receive.address;
+            t.showFace("Monedero 2 de 3", receive.address);
           });
         }),
       ]));
 
     steps.push(step(
-      "Tell the device about the wallet",
-      "The device has only ever seen one key at a time. Giving it the whole "
-      + "descriptor is what lets it recognise its own key in a transaction "
-      + "later, and check that an address really belongs to this wallet.",
+      "Contarle al dispositivo el monedero",
+      "El dispositivo solo ha visto una clave cada vez. Darle el descriptor "
+      + "completo es lo que le permite reconocer su propia clave en una transacción "
+      + "después, y comprobar que una dirección pertenece de verdad a este monedero.",
       [
-        act("Press select to open Scan.", keys(["Enter"]), screenIs("ScanScreen")),
-        handUp("The 2 of 3 descriptor, which names all three keys and says two "
-               + "of them are needed.",
+        act("Pulsa seleccionar para abrir Escanear.", keys(["Enter"]), screenIs("ScanScreen")),
+        handUp("El descriptor 2 de 3, que nombra las tres claves y dice que hacen "
+               + "falta dos de ellas.",
                function (context) {
                  return context.state.wallet.descriptor;
                },
                screenIs("MultisigWalletDescriptorScreen", 240000)),
-        act("The device shows the wallet. Select to accept it.",
+        act("El dispositivo muestra el monedero. Selecciona para aceptarlo.",
             keys(["Enter"]),
             function () {
               return t.poll(120000, function () {
                 var screen = t.currentScreen();
                 return screen && screen !== "MultisigWalletDescriptorScreen";
-              }, "the device to accept the wallet");
+              }, "que el dispositivo acepte el monedero");
             }),
         homeAgain(),
       ]));
 
     steps.push(step(
-      "Ask Bitsaga Signet's faucet for coins",
-      "Bitsaga Signet is our own Bitcoin test network. It makes a block every "
-      + "thirty seconds, so a confirmation happens while you watch. " + NOT_REAL,
+      "Pedir monedas al faucet de Bitsaga Signet",
+      "Bitsaga Signet es nuestra propia red de pruebas de Bitcoin. Genera un bloque "
+      + "cada treinta segundos, así que la confirmación ocurre mientras miras. " + NOT_REAL,
       [
         coordinator(function (context) {
-          t.showFace("Asking the faucet", "Bitsaga Signet, " + context.state.receive.address);
+          t.showFace("Pidiendo al faucet", "Bitsaga Signet, " + context.state.receive.address);
           return C.network.claim(context.state.receive.address).then(function (paid) {
             context.state.funding = paid.txid;
-            t.detail("faucet transaction", paid.txid);
+            t.detail("transacción del faucet", paid.txid);
             t.verdict.dataset.state = "good";
-            t.verdict.textContent = "The faucet sent "
-              + (paid.amount_sat / 1e8).toFixed(8) + " to the wallet. " + NOT_REAL;
-            t.showFace("Coins on the way", paid.txid);
+            t.verdict.textContent = "El faucet envió "
+              + (paid.amount_sat / 1e8).toFixed(8) + " al monedero. " + NOT_REAL;
+            t.showFace("Monedas en camino", paid.txid);
           });
         }),
         coordinator(function (context) {
-          return waitForBlock(t, context.state.funding, "the faucet's payment",
-                              "Waiting for Bitsaga Signet to put it in a block.");
+          return waitForBlock(t, context.state.funding, "el pago del faucet",
+                              "Esperando a que Bitsaga Signet lo meta en un bloque.");
         }),
       ]));
 
     steps.push(step(
-      "Build the spend",
-      "A signing device cannot know what a wallet owns or what a fee should be, "
-      + "so the coordinator works that out and hands over an unfinished "
-      + "transaction for the device to sign. This one pays a second address of "
-      + "the same wallet, because there is nobody on this network to pay. "
-      + NOT_REAL,
+      "Construir el gasto",
+      "Un dispositivo de firma no puede saber qué posee un monedero ni cuál debería "
+      + "ser la comisión, así que el coordinador lo calcula y le entrega una "
+      + "transacción sin terminar para que el dispositivo la firme. Esta paga a una "
+      + "segunda dirección del mismo monedero, porque no hay nadie en esta red a quien "
+      + "pagar. " + NOT_REAL,
       [
         coordinator(function (context) {
           var state = context.state;
-          t.showFace("Building the spend", "One input, one output, and the "
-                     + "script that needs two signatures.");
+          t.showFace("Construyendo el gasto", "Una entrada, una salida, y el "
+                     + "script que necesita dos firmas.");
           return C.network.proof(state.funding).then(function (proof) {
             var outputs = C.transactionOutputs(proof.tx);
             var script = C.hex(state.receive.scriptPubkey);
             var ours = outputs.filter(function (out) { return out.script === script; })[0];
-            if (!ours) throw new Error("the faucet's transaction does not pay this wallet");
+            if (!ours) throw new Error("la transacción del faucet no paga a este monedero");
             state.input = { txid: state.funding, vout: ours.index, value: ours.value };
             return C.deriveAddress(state.wallet, 1, state.index);
           }).then(function (change) {
@@ -1150,14 +1150,14 @@
             state.psbt = C.toBase64(C.buildPsbt(state.input, state.receive,
                                                 change.scriptPubkey, state.amount));
             state.frames = specterFrames(state.psbt);
-            t.detail("spending", state.input.txid + ":" + state.input.vout);
-            t.detail("paying", change.address);
-            t.detail("unsigned PSBT", state.psbt);
+            t.detail("gastando", state.input.txid + ":" + state.input.vout);
+            t.detail("pagando a", change.address);
+            t.detail("PSBT sin firmar", state.psbt);
             t.verdict.dataset.state = "good";
-            t.verdict.textContent = "Ready to sign: "
-              + (Number(state.amount) / 1e8).toFixed(8) + " to " + change.address
-              + ", with " + FEE + " sat of fee. " + NOT_REAL;
-            t.showFace("Unsigned transaction", state.frames.length + " codes to hold up");
+            t.verdict.textContent = "Lista para firmar: "
+              + (Number(state.amount) / 1e8).toFixed(8) + " a " + change.address
+              + ", con " + FEE + " sat de comisión. " + NOT_REAL;
+            t.showFace("Transacción sin firmar", state.frames.length + " códigos que mostrar");
           });
         }),
       ]));
@@ -1166,56 +1166,56 @@
     steps.push(signWith(1));
 
     steps.push(step(
-      "Put the two signatures together and send it",
-      "Neither signature alone moves anything. Together they satisfy the 2 of 3, "
-      + "and the coordinator can finish the transaction and hand it to the "
-      + "network.",
+      "Juntar las dos firmas y enviarla",
+      "Ninguna firma por sí sola mueve nada. Juntas cumplen el 2 de 3, "
+      + "y el coordinador puede terminar la transacción y entregarla a la "
+      + "red.",
       [
         coordinator(function (context) {
           var state = context.state;
-          t.showFace("Finishing the transaction", "Two signatures into one witness.");
+          t.showFace("Terminando la transacción", "Dos firmas en un solo witness.");
           var signatures = {};
           state.signed.forEach(function (psbt) {
             Object.assign(signatures, C.partialSignatures(psbt));
           });
-          t.detail("signatures collected", String(Object.keys(signatures).length), true);
+          t.detail("firmas recogidas", String(Object.keys(signatures).length), true);
           return C.finalise(state.input, state.receive, state.change.scriptPubkey,
                             state.amount, signatures).then(function (final) {
             state.spend = final;
-            t.detail("signed transaction", final.hex);
-            t.detail("transaction id", final.txid);
+            t.detail("transacción firmada", final.hex);
+            t.detail("id de la transacción", final.txid);
             return C.network.broadcast(final.hex);
           }).then(function (sent) {
             if (sent.txid && sent.txid !== state.spend.txid) {
-              throw new Error("the network gave the transaction a different id");
+              throw new Error("la red le dio a la transacción un id distinto");
             }
             t.verdict.dataset.state = "good";
-            t.verdict.textContent = "Sent to Bitsaga Signet: " + state.spend.txid;
-            t.showFace("Broadcast", state.spend.txid);
+            t.verdict.textContent = "Enviada a Bitsaga Signet: " + state.spend.txid;
+            t.showFace("Difundida", state.spend.txid);
           });
         }),
         coordinator(function (context) {
-          return waitForBlock(t, context.state.spend.txid, "the spend",
-                              "Waiting for the spend to be mined.");
+          return waitForBlock(t, context.state.spend.txid, "el gasto",
+                              "Esperando a que se mine el gasto.");
         }),
       ]));
 
     steps.push(step(
-      "Done",
-      "Three seeds on three cards, a wallet that none of them can spend from "
-      + "alone, and a transaction that two of them signed and the network "
-      + "accepted. " + NOT_REAL,
+      "Hecho",
+      "Tres seeds en tres tarjetas, un monedero del que ninguna puede gastar "
+      + "sola, y una transacción que dos de ellas firmaron y la red "
+      + "aceptó. " + NOT_REAL,
       [
         coordinator(function (context) {
           t.verdict.dataset.state = "good";
-          t.verdict.textContent = "Confirmed on Bitsaga Signet: "
+          t.verdict.textContent = "Confirmada en Bitsaga Signet: "
             + context.state.spend.txid;
-          t.showFace("Confirmed", context.state.spend.txid);
+          t.showFace("Confirmada", context.state.spend.txid);
           t.doText.textContent =
-            "Everything above happened in this tab. The one thing to carry away: "
-            + "all three keys were on one device here, which is fine for a demo "
-            + "and wrong for real funds, where the keys belong in different "
-            + "places and different hands.";
+            "Todo lo de arriba ocurrió en esta pestaña. Lo único que llevarse: "
+            + "aquí las tres claves estaban en un solo dispositivo, lo cual está bien "
+            + "para una demo y mal para fondos reales, donde las claves deben estar en "
+            + "sitios distintos y manos distintas.";
           return Promise.resolve();
         }),
       ]));
@@ -1233,22 +1233,22 @@
    * next block and starts again if that block did not carry the transaction.
    */
   function waitForBlock(t, txid, what, say) {
-    t.showFace("Waiting for a block", txid);
+    t.showFace("Esperando un bloque", txid);
     var deadline = Date.now() + 300000;
     return new Promise(function (resolve, reject) {
       (function again() {
         C.network.proof(txid).then(function (proof) {
-          t.detail(what + " confirmed in block", String(proof.height), true);
+          t.detail(what + " confirmado en el bloque", String(proof.height), true);
           t.verdict.dataset.state = "good";
-          t.verdict.textContent = "Confirmed on Bitsaga Signet in block "
+          t.verdict.textContent = "Confirmado en Bitsaga Signet en el bloque "
             + proof.height + ". " + NOT_REAL;
-          t.showFace("Confirmed", "Block " + proof.height);
+          t.showFace("Confirmado", "Bloque " + proof.height);
           resolve();
         }, function (error) {
           if (error.status !== 404) return reject(error);
           if (Date.now() > deadline) {
-            return reject(new Error("Bitsaga Signet has not confirmed this "
-                                    + "transaction. " + say));
+            return reject(new Error("Bitsaga Signet no ha confirmado esta "
+                                    + "transacción. " + say));
           }
           C.network.status().then(function (status) {
             t.subProgress(Math.min(1, (status.last_block_age_seconds || 0) /
@@ -1285,7 +1285,7 @@
       var style = element("style");
       style.textContent = CSS;
       document.head.appendChild(style);
-      var button = element("button", "tut-start", "Start the multisig tutorial");
+      var button = element("button", "tut-start", "Empezar el tutorial multisig");
       button.type = "button";
       button.id = "start-tutorial";
       button.addEventListener("click", function () {

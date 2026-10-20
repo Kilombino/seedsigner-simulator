@@ -364,15 +364,15 @@ def main() -> int:
         # --- hands on --------------------------------------------------------
         print("\nhands on: the visitor presses, the panel keeps pace")
         page, log = boot(context, logs)
-        page.locator("#tutorial button", has_text="I will drive").click()
+        page.locator("#tutorial button", has_text="Conduzco yo").click()
         check("the progress line is not shown in hands on mode",
               bar_width(page) == 0, f"{bar_width(page)}px")
 
-        wait_instruction(page, "Click Card A")
+        wait_instruction(page, "Tarjeta A")
         check("the panel opens by asking for the card", True)
         page.locator(".cardtray-card").nth(0).click()
 
-        wait_instruction(page, "open Scan")
+        wait_instruction(page, "abrir Escanear")
         check("and moves on only once the card is in", True)
         page.keyboard.press("Enter")
 
@@ -383,17 +383,18 @@ def main() -> int:
         while time.time() < deadline and not panel(page, ".tut-arrow"):
             page.wait_for_timeout(200)
         check("the transfer is captioned, with a direction",
-              "Phone" in panel(page, ".tut-arrow") and "device" in panel(page, ".tut-arrow"),
+              "Teléfono" in panel(page, ".tut-arrow")
+              and "dispositivo" in panel(page, ".tut-arrow"),
               panel(page, ".tut-arrow"))
         check("and says what moved",
               "seed" in panel(page, ".tut-caption").lower(), panel(page, ".tut-caption"))
         page.screenshot(path=harness.artifact("tutorial-hands-on.png"), full_page=True)
 
-        wait_instruction(page, "fingerprint")
+        wait_instruction(page, "huella")
         check("the phone holds up the seed and the device reads it", True)
         page.keyboard.press("Enter")
 
-        wait_instruction(page, "Backup seed")
+        wait_instruction(page, "Respaldar semilla")
         for key in ["ArrowDown", "ArrowDown", "ArrowDown", "Enter"]:
             page.keyboard.press(key)
             page.wait_for_timeout(200)
@@ -401,12 +402,12 @@ def main() -> int:
         check("and keeps pace through the menus without driving anything", True)
 
         # Handing back mid-step: same steps, same evidence, different driver.
-        page.locator("#tutorial button", has_text="Let it drive").click()
+        page.locator("#tutorial button", has_text="Que conduzca él").click()
         deadline = time.time() + 240
-        while time.time() < deadline and "Card B" not in panel(page, ".tut-step"):
+        while time.time() < deadline and "Tarjeta B" not in panel(page, ".tut-step"):
             page.wait_for_timeout(500)
         check("handing back mid-step lets it finish the card on its own",
-              "Card B" in panel(page, ".tut-step"), panel(page, ".tut-step"))
+              "Tarjeta B" in panel(page, ".tut-step"), panel(page, ".tut-step"))
         # Every step starts its line again from nothing, so this waits for the
         # first action of the new one rather than reading the line at the
         # boundary and calling an honest zero a missing bar.
@@ -426,7 +427,7 @@ def main() -> int:
         # anyone that does not suit.
         print("\npacing, and the controls over it")
         page, log = boot(context, logs)
-        page.locator("#tutorial button", has_text="Play").click()
+        page.locator("#tutorial button", has_text="Reproducir").click()
 
         instruction, _ = next_instruction(page, "")
         gaps = []
@@ -436,7 +437,7 @@ def main() -> int:
         check("an instruction is left up long enough to be read",
               min(gaps) > 1.0, " ".join(f"{gap:.1f}s" for gap in gaps))
 
-        page.locator("#tutorial button", has_text="Pause").click()
+        page.locator("#tutorial button", has_text="Pausa").click()
         # The action already in flight finishes first -- pausing happens between
         # actions and never inside one -- so what is asserted is that everything
         # then goes still and stays still, rather than that it stopped on the
@@ -455,15 +456,15 @@ def main() -> int:
         check("and the progress line keeps what has actually happened", bar > 0,
               f"{bar:.0f}px")
 
-        page.locator("#tutorial button", has_text="Step").click()
+        page.locator("#tutorial button", has_text="Paso").click()
         stepped, _ = next_instruction(page, held)
         page.wait_for_timeout(8000)
         check("Step takes exactly one action and stops again",
               panel(page, ".tut-do") == stepped, panel(page, ".tut-do")[:60])
         check("and the button says it is paused again",
-              page.locator("#tutorial button", has_text="Play").count() == 1)
+              page.locator("#tutorial button", has_text="Reproducir").count() == 1)
 
-        page.locator("#tutorial button", has_text="Play").click()
+        page.locator("#tutorial button", has_text="Reproducir").click()
         after, _ = next_instruction(page, stepped)
         check("Play carries on from there", bool(after), after[:60])
 
@@ -508,9 +509,25 @@ def main() -> int:
             # previous failure and this reads the previous message back.
             broken["how"] = how
             if not first:
-                page.locator("#tutorial button", has_text="Try again").click()
+                page.locator("#tutorial button", has_text="Empezar de nuevo").click()
+                # The way out is a page reload, so the whole tutorial comes back
+                # from nothing: a fresh Pyodide boot, a fresh Tutorial, and none
+                # of the pacing turned off above. Both have to be put back, or
+                # this waits out its deadline watching a tutorial that is
+                # reading every instruction aloud at a visitor's pace.
+                page.wait_for_function(
+                    "() => window.WalletTutorial && window.WalletTutorial.current",
+                    timeout=180000)
+                page.evaluate("() => { window.WalletTutorial.current.pace = "
+                              "() => Promise.resolve(); }")
+                # And the tutorial that comes back is idle: mounting it does not
+                # start it, a visitor pressing something does. Nothing after this
+                # would ever happen otherwise.
+                page.locator("#tutorial button", has_text="Reproducir").click()
             first = False
-            deadline = time.time() + 300
+            # Long enough for that reboot as well, since two of the three cases
+            # pay for one before they can reach the faucet at all.
+            deadline = time.time() + 480
             while time.time() < deadline:
                 if page.locator("#tutorial .tut-verdict[data-state=bad]").count():
                     break
@@ -518,7 +535,7 @@ def main() -> int:
             said = panel(page, ".tut-verdict")
             check(f"{name}: the panel says so in words, in red", expect in said, said)
             check(f"{name}: and offers a way out",
-                  page.locator("#tutorial button", has_text="Try again").count() == 1)
+                  page.locator("#tutorial button", has_text="Empezar de nuevo").count() == 1)
             page.screenshot(path=harness.artifact(f"tutorial-fail-{name}.png"), full_page=True)
 
         check("nothing was left half-transferred on the phone",

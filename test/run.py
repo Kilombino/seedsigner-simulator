@@ -50,6 +50,8 @@ SUITE = [
     ("firmware", ["test_firmware.py"], True),
     ("build_info", ["test_build_info.py"], True),
     ("settings", ["test_settings.py"], True),
+    ("entropy", ["test_entropy.py"], True),
+    ("stock_entropy", ["test_entropy.py"], True),
     ("scan_seedqr", ["test_scan.py"], True),
     ("scan_compact", ["test_scan.py"], True),
     ("scan_native", ["test_scan_native.py"], True),
@@ -79,6 +81,7 @@ EXTRA_ENV = {
     "stock_scan_seedqr": {"QR_KIND": "qr", **STOCK},
     "stock_scan_compact": {"QR_KIND": "qr-compact", **STOCK},
     "stock_scan_native": dict(STOCK),
+    "stock_entropy": dict(STOCK),
 }
 
 

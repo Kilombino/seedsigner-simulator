@@ -153,7 +153,8 @@ dropped.
 [`src/shims/browser_camera.py`](../src/shims/browser_camera.py) +
 [`src/web/wallet-camera.js`](../src/web/wallet-camera.js)
 
-Two things are faked here, not one: the video stream, and the decode.
+Three things are faked here, not one: the video stream, the still, and the
+decode.
 
 The stream is easy to justify: a browser has `getUserMedia` and no picamera. The
 decode is the interesting one. SeedSigner reads QR codes with **pyzbar**, a binding
@@ -172,7 +173,7 @@ One `SharedArrayBuffer`, laid out in `wallet-camera.js`:
 | header (`CMD`, `STATE`, `FRAME_SEQ`, `FRAME_W`, `FRAME_H`, `QR_LEN`, `ERR_LEN`) | 64 B | both |
 | decoded QR payload | 8192 B | page → worker |
 | error string | 256 B | page → worker |
-| preview frame, RGB | 240 × 240 × 3 | page → worker |
+| preview frame, RGB | 320 × 240 × 3 | page → worker |
 
 `CMD` is the worker asking for the camera on or off. `STATE` is the page answering
 (idle / starting / running / failed). The page runs a ~15 fps loop; the Python
@@ -190,8 +191,13 @@ the decoder with repeats of itself.
 ### The path from webcam to seed
 
 1. The page draws the video into a 640×480 capture canvas (full size, where the QR
-   is still sharp) and a 240×240 preview canvas (small, because every byte of it
+   is still sharp) and a 320×240 preview canvas (small, because every byte of it
    gets copied into a PIL image on the Python side).
+
+   The preview is the screen's own 320×240 and not a square, because the entropy
+   preview screen crops the frame to the screen rather than resizing it: a frame
+   narrower than the screen gets drawn down one side with the rest left black.
+   4:3 is also what the webcam gives, so nothing is squashed on the way.
 2. `BarcodeDetector`, if the browser has it, is asked whether there is a QR in the
    capture at all. On almost every frame the answer is no, and native code says no
    faster than JavaScript can.
@@ -236,6 +242,28 @@ frame-accepted indicator and the translated instructions), the shim lets
 SeedSigner's own loop body run exactly one pass per camera read: `keep_running`
 answers `True` once, then `False`, so `run()` draws a single frame and returns.
 One frame read, one frame drawn.
+
+### The still
+
+The stream is not the only way the firmware asks for the camera. Image entropy
+takes a headline frame through a second path -- `start_single_frame_mode`,
+`capture_frame`, `stop_single_frame_mode` -- and so does the I/O test screen,
+which snaps a background. Stock imports picamera inside those methods, at the
+point of use, so faking only the stream left the entropy flow raising
+`ModuleNotFoundError` two screens in while every scan worked. The shim replaces
+all three, and a still is simply the next frame the page publishes: same buffer,
+same 320x240, no separate capture.
+
+That resolution is worth being plain about. Stock asks for a still at twice the
+screen's largest dimension, on the reasoning that entropy should come from more
+pixels than the display can show; here it gets the preview frame, because that
+is the one size the page publishes. It is the same 230,400 bytes of webcam the
+scan path reads, hashed into 256 bits -- and it is a simulator that says on its
+own front page never to put a real seed into it.
+
+The fork does not use this path at all: it takes its still off the video stream,
+and then checks the image is random enough before using it. Both are covered by
+`test/test_entropy.py`.
 
 ## Seam 4: the smartcard
 

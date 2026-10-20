@@ -43,6 +43,16 @@ _START_WAIT_MS = 30000
 
 _last_frame = None
 
+# How many frame reads a still is allowed before giving up. More than one
+# because the first read after start can land in the gap between the page
+# reporting the camera running and it publishing its first frame.
+_STILL_ATTEMPTS = 3
+
+# Whether start_single_frame_mode has been called and not yet stopped. Module
+# state rather than an attribute on the camera because Camera is a singleton and
+# the two firmwares hold their still backend in differently named attributes.
+_single_frame_open = False
+
 
 def _to_bytes(js_array):
     """Copy a JS Uint8Array into Python bytes."""
@@ -129,6 +139,73 @@ def _stop_video_stream_mode(self):
     _js.stop()
 
 
+def _start_single_frame_mode(self, resolution=(720, 480)):
+    """
+    Open the camera for a one-shot still.
+
+    Stock SeedSigner has a second camera path beside the video stream: image
+    entropy takes its headline frame through `start_single_frame_mode` /
+    `capture_frame`, and so does the settings screen that snaps a background.
+    Both import picamera at the point of use, so leaving them alone left stock
+    raising ModuleNotFoundError at the top of the entropy flow while the fork
+    -- which takes its still off the video stream instead -- worked. Same seam,
+    same page, so it is faked here rather than left to the firmware.
+
+    `resolution` is the caller's preference for a sensor this process does not
+    own. It is ignored, as it is in stream mode: getUserMedia negotiates its
+    own and the page publishes at a fixed preview size.
+    """
+    global _last_frame, _single_frame_open
+
+    if self._video_stream is not None:
+        self.stop_video_stream_mode()
+
+    _last_frame = None
+    error = _js.start(_START_WAIT_MS)
+    if error:
+        raise CameraConnectionError(str(error))
+
+    _single_frame_open = True
+
+
+def _capture_frame(self):
+    """
+    Return one still, parking until the page publishes a frame.
+
+    A still is the same published frame the scan loop reads, not a separate
+    higher-resolution capture: the page publishes one size and this is it. That
+    matters for what the entropy flow is worth here and is worth being plain
+    about -- the image is 320x240 of browser webcam, which is what a simulator
+    that says on its own front page never to put a real seed into it should be
+    taken to offer.
+
+    The real camera raises when it cannot deliver rather than returning None,
+    and the callers here have no None branch, so a frame that never arrives is
+    a CameraConnectionError -- the error stock already routes to
+    CameraConnectionErrorView.
+    """
+    if not _single_frame_open:
+        raise Exception("Must call start_single_frame_mode first.")
+
+    for _ in range(_STILL_ATTEMPTS):
+        frame = _js.frame(_FRAME_WAIT_MS)
+        if frame is not None:
+            # No rotation, for the same reason stream mode does none: the real
+            # camera turns the frame 90 degrees to undo how the sensor sits in
+            # the case, and a getUserMedia stream arrives upright.
+            return Image.frombytes("RGB", (frame.w, frame.h), _to_bytes(frame.bytes))
+
+    raise CameraConnectionError("camera delivered no frame")
+
+
+def _stop_single_frame_mode(self):
+    global _last_frame, _single_frame_open
+
+    _single_frame_open = False
+    _last_frame = None
+    _js.stop()
+
+
 def _extract_qr_data(image, is_binary: bool = False):
     """
     Report the payload the page has decoded, or None.
@@ -187,6 +264,10 @@ def install(js_camera):
     Camera.start_video_stream_mode = _start_video_stream_mode
     Camera.read_video_stream = _read_video_stream
     Camera.stop_video_stream_mode = _stop_video_stream_mode
+
+    Camera.start_single_frame_mode = _start_single_frame_mode
+    Camera.capture_frame = _capture_frame
+    Camera.stop_single_frame_mode = _stop_single_frame_mode
 
     DecodeQR.extract_qr_data = staticmethod(_extract_qr_data)
 

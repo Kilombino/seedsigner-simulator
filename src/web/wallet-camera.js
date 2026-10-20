@@ -23,10 +23,17 @@
 
   var STATES = { IDLE: 0, STARTING: 1, RUNNING: 2, FAILED: 3 };
 
-  // The preview only ever lands on a 320x240 canvas, and every byte of it is
-  // copied into a PIL image on the Python side, so it is published small. The
-  // decode runs against the full capture instead, where the QR is still sharp.
-  var PREVIEW_W = 240;
+  // The preview only ever lands on the device's 320x240 screen, and every byte
+  // of it is copied into a PIL image on the Python side, so it is published at
+  // exactly that and no larger. The decode runs against the full capture
+  // instead, where the QR is still sharp.
+  //
+  // 320x240 rather than a square, and it has to be the screen's own shape: the
+  // firmware's entropy preview crops the frame to the screen instead of
+  // resizing it, so a frame narrower than the screen is drawn down one side
+  // with the rest left black. It is also 4:3, which the webcam already is, so
+  // the picture arrives unsquashed.
+  var PREVIEW_W = 320;
   var PREVIEW_H = 240;
   var CAPTURE_W = 640;
   var CAPTURE_H = 480;
@@ -217,6 +224,7 @@
         // same ?debug=1 as everything else rather than always on.
         if (new URLSearchParams(location.search).has("debug")) {
           console.log("[cam] " + video.videoWidth + "x" + video.videoHeight +
+                      " preview " + PREVIEW_W + "x" + PREVIEW_H +
                       " decoding with " + decoder.name);
         }
         setState(STATES.RUNNING);
