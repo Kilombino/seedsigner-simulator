@@ -1,6 +1,6 @@
 # SeedSigner simulator
 
-> **This branch (`xbt`) is what <https://seed.kilombino.com> serves.** Its default firmware is **SeedSigner XBT (BLAKE2b)** ([Kilombino/seedsigner](https://github.com/Kilombino/seedsigner), `v0.8.7-xbt1`). That is an unofficial version of SeedSigner with support for XBT (BLAKE2b), not affiliated with the SeedSigner project. It adds XBT mode (sighash `0x21`) and JoinMarket fidelity-bond spending. Build it with `./build/build-wallet-zip.sh xbt`; the hash to compare is in the `[xbt]` section of [UPSTREAM](UPSTREAM). The page is in Spanish; the standard SeedSigner and the smartcard firmware are still there.
+> **This branch (`xbt`) is what <https://seed.kilombino.com> serves.** Its default firmware is **SeedSigner XBT (BLAKE2b)** ([Kilombino/seedsigner](https://github.com/Kilombino/seedsigner), `v0.8.7-xbt1`). That is an unofficial version of SeedSigner with support for Bitcoin (BLAKE2b), not affiliated with the SeedSigner project. It adds XBT mode (sighash `0x21`) and JoinMarket fidelity-bond spending. Build it with `./build/build-wallet-zip.sh xbt`; the hash to compare is in the `[xbt]` section of [UPSTREAM](UPSTREAM). The page is in Spanish; the standard SeedSigner and the smartcard firmware are still there.
 
 [![try it live](https://img.shields.io/badge/try%20it-live-f7931a?style=flat-square)](https://bitsaga.be/seedsigner-simulator/)
 [![smartcard fork](https://img.shields.io/badge/smartcard%20fork-SeSi--0.8.7%2BShSi--B11-blue?style=flat-square)](UPSTREAM)
