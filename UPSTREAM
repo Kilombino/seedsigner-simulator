@@ -45,11 +45,11 @@ wallet_zip_contents_sha256 = dbea45131cc89e391b8ced909975b7d0030771d1d284142dd82
 # Spanish catalog from the fork's translations submodule (see the build script).
 [xbt]
 repo   = https://github.com/Kilombino/seedsigner.git
-commit = 617ab707989cd88b851ba1b5b0e767016be1077a
-tag    = v0.8.7-xbt1
+commit = 7db76bf72e2f7f29ff5bb2b3cfec41d7a0f1fdfe
+tag    = v0.8.7-xbt2
 
-wallet_zip_sha256          = c8954cf9e32680326258b641c15555f52ed8968b3e6f55e96c88ca1c6a9cdaa2
-wallet_zip_contents_sha256 = 6f942e01f7945e8d3e07157f9772cf09b48c1fe1f5ebfead4cb0ce23c89a5017
+wallet_zip_sha256          = 8a87b3b142e181876a0c08fc4c624912a4a0ee810e3c87b0bd351150d0fc0d10
+wallet_zip_contents_sha256 = 659b7cb15fb2f9aa30e0f85ca2d5f109adbf661b30079e456fd6b78b56378fca
 
 # The 3rdIteration fork, which merges the release above and adds smartcard
 # support: SeedKeeper and Satochip cards, the card menus, and the dependency
